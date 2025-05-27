@@ -1,0 +1,368 @@
+<!-- Owl Flock Background Animation -->
+<div id="owl-flock-container" class="absolute inset-0 w-full h-full overflow-hidden pointer-events-none z-0">
+  <!-- Accessibility: Hidden canvas -->
+  <canvas id="owl-canvas" aria-hidden="true" class="absolute inset-0 w-full h-full"></canvas>
+  
+  <!-- Fallback for reduced motion preference -->
+  <div id="owl-fallback" class="hidden absolute inset-0">
+    {{ $owlStatic := resources.Get "images/owl-sprite.png" }}
+    <img src="{{ $owlStatic.RelPermalink }}" alt="" class="w-16 h-16 opacity-20 absolute top-1/4 right-1/4">
+  </div>
+</div>
+
+<!-- Check for reduced motion preference -->
+<style>
+  @media (prefers-reduced-motion: reduce) {
+    #owl-canvas { display: none !important; }
+    #owl-fallback { display: block !important; }
+  }
+</style>
+
+<!-- Load p5.js first -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.min.js"></script>
+
+<!-- Hugo asset processing -->
+{{ $owlSprite := resources.Get "images/owl-sprite.png" }}
+
+<script>
+(function() {
+  'use strict';
+  
+  // Prevent duplicate execution
+  if (window.owlFlockActive) {
+    return;
+  }
+  window.owlFlockActive = true;
+  
+  console.log("🦉 Starting owl flock...");
+  
+  let owls = [];
+  let owlSprite;
+  let canvas;
+  let containerElement;
+  const COUNT = 6;
+  const SIZE = 80;
+  let frameCounter = 0;
+  let animationId;
+  
+  const owlSpriteUrl = "{{ $owlSprite.RelPermalink }}";
+  console.log("🖼️ Sprite URL:", owlSpriteUrl);
+
+  // Wait for DOM to be ready
+  function initializeOwls() {
+    containerElement = document.getElementById('owl-flock-container');
+    if (!containerElement) {
+      console.error("❌ Container not found, retrying...");
+      setTimeout(initializeOwls, 100);
+      return;
+    }
+    
+    console.log("📦 Container found");
+    
+    // Load sprite first with better error handling
+    if (owlSpriteUrl && owlSpriteUrl !== "") {
+      console.log("📁 Loading sprite from:", owlSpriteUrl);
+      
+      const img = new Image();
+      img.crossOrigin = "anonymous"; // Add crossOrigin for better compatibility
+      img.onload = function() {
+        console.log("✅ Sprite loaded successfully!");
+        console.log("📐 Sprite dimensions:", img.naturalWidth, "x", img.naturalHeight);
+        console.log("🔍 Expected: 2048x256, Got:", img.naturalWidth, "x", img.naturalHeight);
+        
+        // Verify frame calculations
+        const expectedFrameWidth = img.naturalWidth / 8;
+        const expectedFrameHeight = img.naturalHeight;
+        console.log("📏 Calculated frame size:", expectedFrameWidth, "x", expectedFrameHeight);
+        
+        owlSprite = img;
+        startAnimation();
+      };
+      img.onerror = function(e) {
+        console.error("❌ Sprite failed to load:", e);
+        console.log("🔄 Trying direct path...");
+        
+        // Try direct path as fallback
+        const directImg = new Image();
+        directImg.onload = function() {
+          console.log("✅ Direct sprite loaded successfully!");
+          owlSprite = directImg;
+          startAnimation();
+        };
+        directImg.onerror = function() {
+          console.log("❌ Direct sprite also failed, using fallback");
+          owlSprite = null;
+          startAnimation();
+        };
+        directImg.src = "/images/owl-sprite.png";
+      };
+      img.src = owlSpriteUrl;
+    } else {
+      console.log("⚠️ No sprite URL, using fallback");
+      owlSprite = null;
+      startAnimation();
+    }
+  }
+  
+  function startAnimation() {
+    const width = containerElement.offsetWidth;
+    const height = containerElement.offsetHeight;
+    
+    console.log("🎨 Canvas size:", width, "x", height);
+    
+    if (width === 0 || height === 0) {
+      console.error("❌ Invalid dimensions");
+      return;
+    }
+    
+    // Create canvas manually
+    canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    canvas.style.position = 'absolute';
+    canvas.style.top = '0';
+    canvas.style.left = '0';
+    canvas.style.width = '100%';
+    canvas.style.height = '100%';
+    canvas.style.pointerEvents = 'none';
+    
+    // Remove any existing canvas
+    const existingCanvas = containerElement.querySelector('canvas');
+    if (existingCanvas) {
+      existingCanvas.remove();
+    }
+    
+    containerElement.appendChild(canvas);
+    
+    const ctx = canvas.getContext('2d');
+    console.log("🎨 Canvas created and added");
+    
+    // Create owls
+    owls = [];
+    const lineY = height * 0.7; // Fixed line height for formation
+    for (let i = 0; i < COUNT; i++) {
+      owls.push({
+        x: width + 50 + i * 120,
+        y: lineY, // All owls at same height for formation
+        vx: -2,
+        vy: 0,
+        size: SIZE + (Math.random() - 0.5) * 30,
+        frame: Math.random() * 8,
+        isFlying: false,
+        normalY: lineY, // Same normal height for all
+        index: i, // Store index for consistent spacing
+        spacing: 120 // Spacing between owls
+      });
+    }
+    
+    console.log("🦉 Created", COUNT, "owls");
+    
+    // Start animation loop
+    animate();
+  }
+  
+  function animate() {
+    if (!canvas || !containerElement) {
+      console.log("❌ Animation stopped - no canvas");
+      return;
+    }
+    
+    const ctx = canvas.getContext('2d');
+    const width = canvas.width;
+    const height = canvas.height;
+    
+    // Clear canvas
+    ctx.clearRect(0, 0, width, height);
+    
+    frameCounter += 0.15;
+    
+    // Get mouse position relative to container
+    const rect = containerElement.getBoundingClientRect();
+    const mouseX = (window.lastMouseX || 0) - rect.left;
+    const mouseY = (window.lastMouseY || 0) - rect.top;
+    
+    // Update and draw owls
+    for (let i = 0; i < owls.length; i++) {
+      const owl = owls[i];
+      
+      // Check mouse proximity
+      const mouseDistance = Math.sqrt((mouseX - owl.x) ** 2 + (mouseY - owl.y) ** 2);
+      owl.isFlying = mouseDistance < 80; // Reduced from 120 to 80 for less sensitivity
+      
+      if (owl.isFlying) {
+        // Flee from mouse - gentler response
+        const fleeX = (owl.x - mouseX) / mouseDistance;
+        const fleeY = (owl.y - mouseY) / mouseDistance;
+        owl.vx = fleeX * 2.5 - 1; // Reduced from 4 to 2.5 for smoother movement
+        owl.vy = fleeY * 2; // Reduced from 3 to 2 for smoother movement
+      } else {
+        // Normal marching in formation
+        owl.vx = -2;
+        owl.vy = (owl.normalY - owl.y) * 0.1; // Return to formation line, no sine wave bobbing
+      }
+      
+      // Update position
+      owl.x += owl.vx;
+      owl.y += owl.vy;
+      
+      // Wrap around
+      if (owl.x < -150) {
+        // Calculate new position with proper spacing to avoid overlap
+        const baseX = width + 150;
+        const offset = owl.index * owl.spacing; // Each owl gets unique offset
+        owl.x = baseX + offset;
+        owl.y = owl.normalY; // Return to formation line
+        owl.normalY = owl.normalY; // Keep same formation height
+      }
+      
+      // Bounds
+      if (owl.y < height * 0.4) owl.y = height * 0.4;
+      if (owl.y > height * 0.9) owl.y = height * 0.9;
+      
+      // Draw owl
+      drawOwl(ctx, owl);
+    }
+    
+    animationId = requestAnimationFrame(animate);
+  }
+  
+  function drawOwl(ctx, owl) {
+    ctx.save();
+    ctx.translate(owl.x, owl.y);
+    ctx.scale(-1, 1); // Flip for left movement
+    
+    if (owlSprite && owlSprite.complete) {
+      // Use sprite - fix frame dimensions and maintain aspect ratio
+      // Sprite is 2048x256 with 8 frames, so each frame is 256x256
+      
+      // Frame logic: alternate between frame 0 and 7 when walking (waddling), animate all frames when flying
+      let frame;
+      if (owl.isFlying) {
+        frame = Math.floor(frameCounter * 0.8) % 8; // Animate all frames when flying
+      } else {
+        // Waddle between frame 0 and 7 for walking effect
+        const waddleSpeed = 0.3; // Adjust speed of waddling
+        const waddleFrame = Math.floor(frameCounter * waddleSpeed) % 2;
+        frame = waddleFrame === 0 ? 0 : 7; // Alternate between first and last frame
+      }
+      
+      // Use actual sprite dimensions for accurate frame cutting
+      const actualFrameWidth = owlSprite.naturalWidth / 8;  // Should be 256 if 2048/8
+      const actualFrameHeight = owlSprite.naturalHeight;     // Should be 256
+      const sx = frame * actualFrameWidth;
+      
+      // Debug actual frame cutting (remove after verification)
+      if (frameCounter % 60 === 0) { // Log every 60 frames to avoid spam
+        console.log("🔍 Sprite size:", owlSprite.naturalWidth, "x", owlSprite.naturalHeight);
+        console.log("📏 Frame size:", actualFrameWidth, "x", actualFrameHeight);
+        console.log("✂️ Current frame:", frame, "sx:", sx);
+      }
+      
+      // Calculate proper size maintaining aspect ratio
+      const baseSize = (owl.size * (owl.isFlying ? 1.3 : 1.0)) * 1.33; // Reduced to 1/3 of previous size (4 -> 1.33)
+      const aspectRatio = actualFrameWidth / actualFrameHeight; // Should be 1.0 for square frames
+      const drawWidth = baseSize * aspectRatio;
+      const drawHeight = baseSize;
+      
+      // Add beautiful gray background circles - use same radius for perfect circle
+      const grayColors = [
+        'rgba(200, 200, 210, 0.15)',
+        'rgba(180, 185, 195, 0.12)', 
+        'rgba(190, 195, 200, 0.18)',
+        'rgba(175, 180, 190, 0.14)',
+        'rgba(185, 190, 200, 0.16)',
+        'rgba(195, 200, 205, 0.13)'
+      ];
+      const colorIndex = Math.floor(owl.x / 100) % grayColors.length;
+      
+      // Use smaller radius for tighter circle around owl
+      const circleRadius = baseSize * 0.25; // Reduced from 0.4 to 0.25 for less padding
+      
+      ctx.globalAlpha = 0.8;
+      ctx.fillStyle = grayColors[colorIndex];
+      ctx.beginPath();
+      ctx.ellipse(0, 0, circleRadius, circleRadius, 0, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Draw sprite with correct aspect ratio
+      ctx.globalAlpha = 1.0;
+      try {
+        ctx.drawImage(owlSprite, sx, 0, actualFrameWidth, actualFrameHeight, -drawWidth/2, -drawHeight/2, drawWidth, drawHeight);
+        console.log("🎨 Drawing sprite frame:", frame, "at", owl.x, owl.y, "size:", drawWidth, "x", drawHeight);
+      } catch (e) {
+        console.error("❌ Error drawing sprite:", e);
+        drawFallbackOwl(ctx, owl);
+      }
+      ctx.globalAlpha = 1.0;
+    } else {
+      // Fallback drawing
+      drawFallbackOwl(ctx, owl);
+    }
+    
+    // Remove emoji icon completely
+    
+    ctx.restore();
+  }
+  
+  function drawFallbackOwl(ctx, owl) {
+    ctx.globalAlpha = 0.8;
+    
+    // Body
+    ctx.fillStyle = '#8B4513';
+    ctx.beginPath();
+    ctx.ellipse(0, 0, owl.size/2, owl.size/2.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Eyes
+    ctx.fillStyle = 'white';
+    ctx.beginPath();
+    ctx.ellipse(-12, -12, 8, 8, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(12, -12, 8, 8, 0, 0, Math.PI * 2);
+    ctx.fill();
+    
+    ctx.fillStyle = 'black';
+    ctx.beginPath();
+    ctx.ellipse(-12, -12, 4, 4, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(12, -12, 4, 4, 0, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Beak
+    ctx.fillStyle = '#FFA500';
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(-5, 10);
+    ctx.lineTo(5, 10);
+    ctx.closePath();
+    ctx.fill();
+    
+    ctx.globalAlpha = 1.0;
+  }
+  
+  // Track mouse position
+  document.addEventListener('mousemove', function(e) {
+    window.lastMouseX = e.clientX;
+    window.lastMouseY = e.clientY;
+  });
+  
+  // Handle window resize
+  window.addEventListener('resize', function() {
+    if (canvas && containerElement) {
+      canvas.width = containerElement.offsetWidth;
+      canvas.height = containerElement.offsetHeight;
+    }
+  });
+  
+  // Start when DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeOwls);
+  } else {
+    setTimeout(initializeOwls, 100); // Small delay to ensure everything is ready
+  }
+  
+  console.log("🦉 Owl flock script loaded");
+})();
+</script> 
