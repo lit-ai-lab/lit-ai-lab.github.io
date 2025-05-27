@@ -44,6 +44,7 @@
   const SIZE = 80;
   let frameCounter = 0;
   let animationId;
+  let lineY; // Global variable for owl formation line
   
   const owlSpriteUrl = "{{ $owlSprite.RelPermalink }}";
   console.log("🖼️ Sprite URL:", owlSpriteUrl);
@@ -137,9 +138,23 @@
     const ctx = canvas.getContext('2d');
     console.log("🎨 Canvas created and added");
     
+    // Find footer position to place owls relative to it
+    const footer = document.querySelector('footer');
+    
+    if (footer) {
+      const footerRect = footer.getBoundingClientRect();
+      const containerRect = containerElement.getBoundingClientRect();
+      // Position owls about 100px above the footer
+      lineY = footerRect.top - containerRect.top - 100;
+      console.log("🦶 Footer found at:", footerRect.top, "Owls positioned at:", lineY);
+    } else {
+      // Fallback to 85% if footer not found
+      lineY = height * 0.85;
+      console.log("⚠️ Footer not found, using fallback position:", lineY);
+    }
+    
     // Create owls
     owls = [];
-    const lineY = height * 0.7; // Fixed line height for formation
     for (let i = 0; i < COUNT; i++) {
       owls.push({
         x: width + 50 + i * 120,
@@ -215,9 +230,12 @@
         owl.normalY = owl.normalY; // Keep same formation height
       }
       
-      // Bounds
-      if (owl.y < height * 0.4) owl.y = height * 0.4;
-      if (owl.y > height * 0.9) owl.y = height * 0.9;
+      // Bounds - keep owls near footer area
+      const minY = Math.max(0, lineY - 200); // Allow owls to go up to 200px above their normal position
+      const maxY = Math.min(height - 50, lineY + 100); // Allow owls to go down to 100px below normal, but not off screen
+      
+      if (owl.y < minY) owl.y = minY;
+      if (owl.y > maxY) owl.y = maxY;
       
       // Draw owl
       drawOwl(ctx, owl);
@@ -353,6 +371,21 @@
     if (canvas && containerElement) {
       canvas.width = containerElement.offsetWidth;
       canvas.height = containerElement.offsetHeight;
+      
+      // Recalculate footer position on resize
+      const footer = document.querySelector('footer');
+      if (footer) {
+        const footerRect = footer.getBoundingClientRect();
+        const containerRect = containerElement.getBoundingClientRect();
+        lineY = footerRect.top - containerRect.top - 100;
+        
+        // Update owl normal positions
+        owls.forEach(owl => {
+          owl.normalY = lineY;
+        });
+        
+        console.log("🔄 Resized - new owl position:", lineY);
+      }
     }
   });
   
