@@ -209,14 +209,20 @@
       owl.x += owl.vx;
       owl.y += owl.vy;
       
-      // Wrap around
+      // Wrap around with better spacing management
       if (owl.x < -150) {
-        // Calculate new position with proper spacing to avoid overlap
-        const baseX = width + 150;
-        const offset = owl.index * owl.spacing; // Each owl gets unique offset
-        owl.x = baseX + offset;
+        // Find the rightmost owl position to maintain proper spacing
+        let rightmostX = -Infinity;
+        for (let j = 0; j < owls.length; j++) {
+          if (j !== i && owls[j].x > rightmostX) {
+            rightmostX = owls[j].x;
+          }
+        }
+        
+        // Position this owl with proper spacing from the rightmost owl
+        const minSpacing = 150; // Increased minimum spacing to prevent overlap
+        owl.x = Math.max(width + 150, rightmostX + minSpacing);
         owl.y = owl.normalY; // Return to formation line
-        owl.normalY = owl.normalY; // Keep same formation height
       }
       
       // Bounds - keep owls in bottom area
@@ -242,15 +248,16 @@
       // Use sprite - fix frame dimensions and maintain aspect ratio
       // Sprite is 2048x256 with 8 frames, so each frame is 256x256
       
-      // Frame logic: alternate between frame 0 and 7 when walking (waddling), animate all frames when flying
+      // Frame logic: use frames 0,1,3,4,7 when walking, animate all frames when flying
       let frame;
       if (owl.isFlying) {
-        frame = Math.floor(frameCounter * 0.8) % 8; // Animate all frames when flying
+        frame = Math.floor(frameCounter * 1.2) % 8; // Faster iteration through all frames (0-7)
       } else {
-        // Waddle between frame 0 and 7 for walking effect
-        const waddleSpeed = 0.3; // Adjust speed of waddling
-        const waddleFrame = Math.floor(frameCounter * waddleSpeed) % 2;
-        frame = waddleFrame === 0 ? 0 : 7; // Alternate between first and last frame
+        // Cycle through specific walking frames: 0,1,3,4,7
+        const walkingFrames = [0, 1, 3, 4, 7];
+        const walkingSpeed = 0.2; // Slower animation for walking
+        const frameIndex = Math.floor(frameCounter * walkingSpeed) % walkingFrames.length;
+        frame = walkingFrames[frameIndex];
       }
       
       // Use actual sprite dimensions for accurate frame cutting
@@ -271,7 +278,7 @@
       const drawWidth = baseSize * aspectRatio;
       const drawHeight = baseSize;
       
-      // Add beautiful gray background circles - use same radius for perfect circle
+      // Add beautiful gray background circles with rotation - 3 different sizes
       const grayColors = [
         'rgba(200, 200, 210, 0.15)',
         'rgba(180, 185, 195, 0.12)', 
@@ -282,14 +289,20 @@
       ];
       const colorIndex = Math.floor(owl.x / 100) % grayColors.length;
       
-      // Use smaller radius for tighter circle around owl
-      const circleRadius = baseSize * 0.25; // Reduced from 0.4 to 0.25 for less padding
+      // Three different circle sizes - each level is half the size of the previous
+      const circleSizes = [0.01, 0.03, 0.06]; // Small (1x), Medium (2x), Large (4x) - each doubles
+      const sizeIndex = owl.index % circleSizes.length;
+      const circleRadius = baseSize * circleSizes[sizeIndex];
+      const rotation = frameCounter * 0.05; // Rotation speed
       
       ctx.globalAlpha = 0.8;
       ctx.fillStyle = grayColors[colorIndex];
+      ctx.save();
+      ctx.rotate(rotation);
       ctx.beginPath();
       ctx.ellipse(0, 0, circleRadius, circleRadius, 0, 0, Math.PI * 2);
       ctx.fill();
+      ctx.restore();
       
       // Draw sprite with correct aspect ratio
       ctx.globalAlpha = 1.0;
