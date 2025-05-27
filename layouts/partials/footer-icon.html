@@ -1,0 +1,15 @@
+{{ $footerLogo := resources.Get "images/icononly_transparent_nobuffer.png" }}
+{{ $footerLogoDark := resources.Get "images/grayscale_icononly_transparent_nobuffer.png" }}
+
+<!-- Light mode icon -->
+<img 
+  src="{{ $footerLogo.RelPermalink }}" 
+  alt="LIT Lab Icon" 
+  class="h-8 w-8 block dark:hidden"
+>
+<!-- Dark mode icon -->
+<img 
+  src="{{ $footerLogoDark.RelPermalink }}" 
+  alt="LIT Lab Icon" 
+  class="h-8 w-8 hidden dark:block"
+> 

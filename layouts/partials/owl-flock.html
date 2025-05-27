@@ -138,20 +138,9 @@
     const ctx = canvas.getContext('2d');
     console.log("🎨 Canvas created and added");
     
-    // Find footer position to place owls relative to it
-    const footer = document.querySelector('footer');
-    
-    if (footer) {
-      const footerRect = footer.getBoundingClientRect();
-      const containerRect = containerElement.getBoundingClientRect();
-      // Position owls about 100px above the footer
-      lineY = footerRect.top - containerRect.top - 100;
-      console.log("🦶 Footer found at:", footerRect.top, "Owls positioned at:", lineY);
-    } else {
-      // Fallback to 85% if footer not found
-      lineY = height * 0.85;
-      console.log("⚠️ Footer not found, using fallback position:", lineY);
-    }
+    // Position owls near the bottom of the hero section (close to footer)
+    lineY = height - 150; // 150px from the bottom of the container
+    console.log("🦉 Positioning owls at:", lineY, "pixels from top (", height - lineY, "px from bottom)");
     
     // Create owls
     owls = [];
@@ -230,9 +219,9 @@
         owl.normalY = owl.normalY; // Keep same formation height
       }
       
-      // Bounds - keep owls near footer area
-      const minY = Math.max(0, lineY - 200); // Allow owls to go up to 200px above their normal position
-      const maxY = Math.min(height - 50, lineY + 100); // Allow owls to go down to 100px below normal, but not off screen
+      // Bounds - keep owls in bottom area
+      const minY = Math.max(height * 0.5, lineY - 200); // Don't go higher than middle of screen
+      const maxY = Math.min(height - 50, lineY + 100); // Stay at least 50px from bottom
       
       if (owl.y < minY) owl.y = minY;
       if (owl.y > maxY) owl.y = maxY;
@@ -369,23 +358,20 @@
   // Handle window resize
   window.addEventListener('resize', function() {
     if (canvas && containerElement) {
-      canvas.width = containerElement.offsetWidth;
-      canvas.height = containerElement.offsetHeight;
+      const newWidth = containerElement.offsetWidth;
+      const newHeight = containerElement.offsetHeight;
+      canvas.width = newWidth;
+      canvas.height = newHeight;
       
-      // Recalculate footer position on resize
-      const footer = document.querySelector('footer');
-      if (footer) {
-        const footerRect = footer.getBoundingClientRect();
-        const containerRect = containerElement.getBoundingClientRect();
-        lineY = footerRect.top - containerRect.top - 100;
-        
-        // Update owl normal positions
-        owls.forEach(owl => {
-          owl.normalY = lineY;
-        });
-        
-        console.log("🔄 Resized - new owl position:", lineY);
-      }
+      // Recalculate bottom-relative position
+      lineY = newHeight - 150;
+      
+      // Update owl normal positions
+      owls.forEach(owl => {
+        owl.normalY = lineY;
+      });
+      
+      console.log("🔄 Resized - new owl position:", lineY, "px from top");
     }
   });
   
