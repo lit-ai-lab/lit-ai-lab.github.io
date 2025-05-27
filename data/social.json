@@ -1,0 +1,14 @@
+{
+  "main": [
+    {
+      "name": "github",
+      "icon": "fab fa-github",
+      "link": "https://github.com/lit-ai-lab"
+    },
+    {
+      "name": "hallym-university",
+      "icon": "fas fa-university",
+      "link": "https://www.hallym.ac.kr/"
+    }
+  ]
+}

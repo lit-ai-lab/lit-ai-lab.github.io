@@ -1,0 +1,90 @@
+<div class="bg-body dark:bg-darkmode-body border border-border dark:border-darkmode-border rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow duration-300">
+  {{ $image := .Params.image }}
+  {{ if $image }}
+    {{ partial "image" (dict "Src" $image "Context" .Page "Alt" .Title "Class" "mb-4 w-full rounded-lg h-48 object-cover") }}
+  {{ else }}
+    <div class="mb-4 w-full h-48 bg-gray-200 dark:bg-gray-700 rounded-lg flex items-center justify-center">
+      <i class="fa-solid fa-flask text-4xl text-gray-400"></i>
+    </div>
+  {{ end }}
+  
+  <div class="flex justify-between items-start mb-3">
+    <h4 class="text-h5 mb-0 flex-1 mr-3">
+      <a href="{{ .RelPermalink }}" class="hover:text-primary transition-colors">
+        {{ .Title }}
+      </a>
+    </h4>
+    {{ $status := .Params.status }}
+    {{ if $status }}
+      {{ if eq $status "Completed" }}
+        <span class="px-3 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100">
+          {{ $status }}
+        </span>
+      {{ else if eq $status "In Progress" }}
+        <span class="px-3 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100">
+          {{ $status }}
+        </span>
+      {{ else if eq $status "Research Phase" }}
+        <span class="px-3 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-100">
+          {{ $status }}
+        </span>
+      {{ else }}
+        <span class="px-3 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200">
+          {{ $status }}
+        </span>
+      {{ end }}
+    {{ end }}
+  </div>
+
+  {{ $categories := .Params.categories }}
+  {{ if $categories }}
+    <div class="mb-3">
+      {{ range $categories }}
+        <span class="inline-block bg-primary/10 text-primary text-xs px-2 py-1 rounded mr-2 mb-1">
+          {{ . }}
+        </span>
+      {{ end }}
+    </div>
+  {{ end }}
+
+  <p class="text-gray-600 dark:text-gray-300 mb-4 text-sm leading-relaxed">
+    {{ if .Params.description }}
+      {{ .Params.description }}
+    {{ else }}
+      {{ .Summary | plainify | truncate 120 }}
+    {{ end }}
+  </p>
+
+  {{ $tech_stack := .Params.tech_stack }}
+  {{ if $tech_stack }}
+    <div class="mb-4">
+      <h6 class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Tech Stack</h6>
+      <div class="flex flex-wrap gap-1">
+        {{ range $tech_stack }}
+          <span class="text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-1 rounded">
+            #{{ . | lower | replaceRE "[^a-z0-9]+" "" }}
+          </span>
+        {{ end }}
+      </div>
+    </div>
+  {{ end }}
+
+  <div class="flex items-center justify-between">
+    <div class="text-xs text-gray-500 dark:text-gray-400">
+      {{ if and .Params.start_date .Params.end_date }}
+        <i class="fa-regular fa-calendar mr-1"></i>{{ .Params.start_date | time.Format "Jan 2006" }} - {{ .Params.end_date | time.Format "Jan 2006" }}
+      {{ else if .Params.start_date }}
+        <i class="fa-regular fa-calendar mr-1"></i>{{ .Params.start_date | time.Format "Jan 2006" }} - Present
+      {{ else }}
+        <i class="fa-regular fa-clock mr-1"></i>{{ .Date.Format "Jan 2006" }}
+      {{ end }}
+    </div>
+    
+    <div class="flex gap-2">
+      <a href="{{ .RelPermalink }}" 
+         class="btn btn-primary btn-sm">
+        Learn More
+      </a>
+    </div>
+  </div>
+</div> 
