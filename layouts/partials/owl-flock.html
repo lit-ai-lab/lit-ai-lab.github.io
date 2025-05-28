@@ -1,400 +1,366 @@
-<!-- Owl Flock Background Animation -->
-<div id="owl-flock-container" class="absolute inset-0 w-full h-full overflow-hidden pointer-events-none z-0">
-  <!-- Accessibility: Hidden canvas -->
-  <canvas id="owl-canvas" aria-hidden="true" class="absolute inset-0 w-full h-full"></canvas>
-  
-  <!-- Fallback for reduced motion preference -->
-  <div id="owl-fallback" class="hidden absolute inset-0">
-    {{ $owlStatic := resources.Get "images/owl-sprite.png" }}
-    <img src="{{ $owlStatic.RelPermalink }}" alt="" class="w-16 h-16 opacity-20 absolute top-1/4 right-1/4">
-  </div>
+<!-- Thought Flow Squares Background Animation -->
+<div id="thought-flow-container" class="absolute inset-0 w-full h-full overflow-hidden pointer-events-none z-0">
+    <!-- Custom cursor -->
+    <div id="custom-cursor" class="fixed w-5 h-5 pointer-events-none z-50 hidden"
+        style="background: radial-gradient(circle, rgba(102,126,234,0.8) 0%, rgba(118,75,162,0.3) 70%, transparent 100%); border-radius: 50%; transition: transform 0.1s ease;">
+    </div>
+
+    <!-- Fallback for reduced motion preference -->
+    <div id="squares-fallback" class="hidden absolute inset-0">
+        <div
+            class="w-8 h-8 opacity-20 absolute top-1/4 right-1/4 bg-gradient-to-br from-purple-400 to-pink-400 rounded">
+        </div>
+    </div>
 </div>
 
 <!-- Check for reduced motion preference -->
 <style>
-  @media (prefers-reduced-motion: reduce) {
-    #owl-canvas { display: none !important; }
-    #owl-fallback { display: block !important; }
-  }
+    @media (prefers-reduced-motion: reduce) {
+        #thought-flow-container .square {
+            display: none !important;
+        }
+
+        #squares-fallback {
+            display: block !important;
+        }
+    }
+
+    /* Hide default cursor in container */
+    #thought-flow-container {
+        cursor: none;
+    }
+
+    .square {
+        position: absolute;
+        border-radius: 4px;
+        transition: all 0.3s ease;
+        pointer-events: none;
+        box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+    }
+
+    .ripple {
+        position: absolute;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-radius: 50%;
+        pointer-events: none;
+        animation: rippleExpand 1.5s ease-out forwards;
+    }
+
+    @keyframes rippleExpand {
+        0% {
+            width: 0;
+            height: 0;
+            opacity: 0.8;
+        }
+
+        100% {
+            width: 400px;
+            height: 400px;
+            opacity: 0;
+        }
+    }
 </style>
 
-<!-- Load p5.js first -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.min.js"></script>
-
-<!-- Hugo asset processing -->
-{{ $owlSprite := resources.Get "images/owl-sprite.png" }}
-
 <script>
-(function() {
-  'use strict';
-  
-  // Prevent duplicate execution
-  if (window.owlFlockActive) {
-    return;
-  }
-  window.owlFlockActive = true;
-  
-  console.log("🦉 Starting owl flock...");
-  
-  let owls = [];
-  let owlSprite;
-  let canvas;
-  let containerElement;
-  const COUNT = 6;
-  const SIZE = 80;
-  let frameCounter = 0;
-  let animationId;
-  let lineY; // Global variable for owl formation line
-  
-  const owlSpriteUrl = "{{ $owlSprite.RelPermalink }}";
-  console.log("🖼️ Sprite URL:", owlSpriteUrl);
+    (function () {
+        'use strict';
 
-  // Wait for DOM to be ready
-  function initializeOwls() {
-    containerElement = document.getElementById('owl-flock-container');
-    if (!containerElement) {
-      console.error("❌ Container not found, retrying...");
-      setTimeout(initializeOwls, 100);
-      return;
-    }
-    
-    console.log("📦 Container found");
-    
-    // Load sprite first with better error handling
-    if (owlSpriteUrl && owlSpriteUrl !== "") {
-      console.log("📁 Loading sprite from:", owlSpriteUrl);
-      
-      const img = new Image();
-      img.crossOrigin = "anonymous"; // Add crossOrigin for better compatibility
-      img.onload = function() {
-        console.log("✅ Sprite loaded successfully!");
-        console.log("📐 Sprite dimensions:", img.naturalWidth, "x", img.naturalHeight);
-        console.log("🔍 Expected: 2048x256, Got:", img.naturalWidth, "x", img.naturalHeight);
-        
-        // Verify frame calculations
-        const expectedFrameWidth = img.naturalWidth / 8;
-        const expectedFrameHeight = img.naturalHeight;
-        console.log("📏 Calculated frame size:", expectedFrameWidth, "x", expectedFrameHeight);
-        
-        owlSprite = img;
-        startAnimation();
-      };
-      img.onerror = function(e) {
-        console.error("❌ Sprite failed to load:", e);
-        console.log("🔄 Trying direct path...");
-        
-        // Try direct path as fallback
-        const directImg = new Image();
-        directImg.onload = function() {
-          console.log("✅ Direct sprite loaded successfully!");
-          owlSprite = directImg;
-          startAnimation();
-        };
-        directImg.onerror = function() {
-          console.log("❌ Direct sprite also failed, using fallback");
-          owlSprite = null;
-          startAnimation();
-        };
-        directImg.src = "/images/owl-sprite.png";
-      };
-      img.src = owlSpriteUrl;
-    } else {
-      console.log("⚠️ No sprite URL, using fallback");
-      owlSprite = null;
-      startAnimation();
-    }
-  }
-  
-  function startAnimation() {
-    const width = containerElement.offsetWidth;
-    const height = containerElement.offsetHeight;
-    
-    console.log("🎨 Canvas size:", width, "x", height);
-    
-    if (width === 0 || height === 0) {
-      console.error("❌ Invalid dimensions");
-      return;
-    }
-    
-    // Create canvas manually
-    canvas = document.createElement('canvas');
-    canvas.width = width;
-    canvas.height = height;
-    canvas.style.position = 'absolute';
-    canvas.style.top = '0';
-    canvas.style.left = '0';
-    canvas.style.width = '100%';
-    canvas.style.height = '100%';
-    canvas.style.pointerEvents = 'none';
-    
-    // Remove any existing canvas
-    const existingCanvas = containerElement.querySelector('canvas');
-    if (existingCanvas) {
-      existingCanvas.remove();
-    }
-    
-    containerElement.appendChild(canvas);
-    
-    const ctx = canvas.getContext('2d');
-    console.log("🎨 Canvas created and added");
-    
-    // Position owls near the bottom of the hero section (close to footer)
-    lineY = height - 150; // 150px from the bottom of the container
-    console.log("🦉 Positioning owls at:", lineY, "pixels from top (", height - lineY, "px from bottom)");
-    
-    // Create owls
-    owls = [];
-    for (let i = 0; i < COUNT; i++) {
-      owls.push({
-        x: width + 50 + i * 120,
-        y: lineY, // All owls at same height for formation
-        vx: -2,
-        vy: 0,
-        size: SIZE + (Math.random() - 0.5) * 30,
-        frame: Math.random() * 8,
-        isFlying: false,
-        normalY: lineY, // Same normal height for all
-        index: i, // Store index for consistent spacing
-        spacing: 120 // Spacing between owls
-      });
-    }
-    
-    console.log("🦉 Created", COUNT, "owls");
-    
-    // Start animation loop
-    animate();
-  }
-  
-  function animate() {
-    if (!canvas || !containerElement) {
-      console.log("❌ Animation stopped - no canvas");
-      return;
-    }
-    
-    const ctx = canvas.getContext('2d');
-    const width = canvas.width;
-    const height = canvas.height;
-    
-    // Clear canvas
-    ctx.clearRect(0, 0, width, height);
-    
-    frameCounter += 0.15;
-    
-    // Get mouse position relative to container
-    const rect = containerElement.getBoundingClientRect();
-    const mouseX = (window.lastMouseX || 0) - rect.left;
-    const mouseY = (window.lastMouseY || 0) - rect.top;
-    
-    // Update and draw owls
-    for (let i = 0; i < owls.length; i++) {
-      const owl = owls[i];
-      
-      // Check mouse proximity
-      const mouseDistance = Math.sqrt((mouseX - owl.x) ** 2 + (mouseY - owl.y) ** 2);
-      owl.isFlying = mouseDistance < 80; // Reduced from 120 to 80 for less sensitivity
-      
-      if (owl.isFlying) {
-        // Flee from mouse - gentler response
-        const fleeX = (owl.x - mouseX) / mouseDistance;
-        const fleeY = (owl.y - mouseY) / mouseDistance;
-        owl.vx = fleeX * 2.5 - 1; // Reduced from 4 to 2.5 for smoother movement
-        owl.vy = fleeY * 2; // Reduced from 3 to 2 for smoother movement
-      } else {
-        // Normal marching in formation
-        owl.vx = -2;
-        owl.vy = (owl.normalY - owl.y) * 0.1; // Return to formation line, no sine wave bobbing
-      }
-      
-      // Update position
-      owl.x += owl.vx;
-      owl.y += owl.vy;
-      
-      // Wrap around with better spacing management
-      if (owl.x < -150) {
-        // Find the rightmost owl position to maintain proper spacing
-        let rightmostX = -Infinity;
-        for (let j = 0; j < owls.length; j++) {
-          if (j !== i && owls[j].x > rightmostX) {
-            rightmostX = owls[j].x;
-          }
+        // Prevent duplicate execution
+        if (window.thoughtFlowActive) {
+            return;
         }
-        
-        // Position this owl with proper spacing from the rightmost owl
-        const minSpacing = 150; // Increased minimum spacing to prevent overlap
-        owl.x = Math.max(width + 150, rightmostX + minSpacing);
-        owl.y = owl.normalY; // Return to formation line
-      }
-      
-      // Bounds - keep owls in bottom area
-      const minY = Math.max(height * 0.5, lineY - 200); // Don't go higher than middle of screen
-      const maxY = Math.min(height - 50, lineY + 100); // Stay at least 50px from bottom
-      
-      if (owl.y < minY) owl.y = minY;
-      if (owl.y > maxY) owl.y = maxY;
-      
-      // Draw owl
-      drawOwl(ctx, owl);
-    }
-    
-    animationId = requestAnimationFrame(animate);
-  }
-  
-  function drawOwl(ctx, owl) {
-    ctx.save();
-    ctx.translate(owl.x, owl.y);
-    ctx.scale(-1, 1); // Flip for left movement
-    
-    if (owlSprite && owlSprite.complete) {
-      // Use sprite - fix frame dimensions and maintain aspect ratio
-      // Sprite is 2048x256 with 8 frames, so each frame is 256x256
-      
-      // Frame logic: use frames 0,1,3,4,7 when walking, animate all frames when flying
-      let frame;
-      if (owl.isFlying) {
-        frame = Math.floor(frameCounter * 1.2) % 8; // Faster iteration through all frames (0-7)
-      } else {
-        // Cycle through specific walking frames: 0,1,3,4,7
-        const walkingFrames = [0, 1, 3, 4, 7];
-        const walkingSpeed = 0.2; // Slower animation for walking
-        const frameIndex = Math.floor(frameCounter * walkingSpeed) % walkingFrames.length;
-        frame = walkingFrames[frameIndex];
-      }
-      
-      // Use actual sprite dimensions for accurate frame cutting
-      const actualFrameWidth = owlSprite.naturalWidth / 8;  // Should be 256 if 2048/8
-      const actualFrameHeight = owlSprite.naturalHeight;     // Should be 256
-      const sx = frame * actualFrameWidth;
-      
-      // Debug actual frame cutting (remove after verification)
-      if (frameCounter % 60 === 0) { // Log every 60 frames to avoid spam
-        console.log("🔍 Sprite size:", owlSprite.naturalWidth, "x", owlSprite.naturalHeight);
-        console.log("📏 Frame size:", actualFrameWidth, "x", actualFrameHeight);
-        console.log("✂️ Current frame:", frame, "sx:", sx);
-      }
-      
-      // Calculate proper size maintaining aspect ratio
-      const baseSize = (owl.size * (owl.isFlying ? 1.3 : 1.0)) * 1.33; // Reduced to 1/3 of previous size (4 -> 1.33)
-      const aspectRatio = actualFrameWidth / actualFrameHeight; // Should be 1.0 for square frames
-      const drawWidth = baseSize * aspectRatio;
-      const drawHeight = baseSize;
-      
-      // Add beautiful gray background circles with rotation - 3 different sizes
-      const grayColors = [
-        'rgba(200, 200, 210, 0.15)',
-        'rgba(180, 185, 195, 0.12)', 
-        'rgba(190, 195, 200, 0.18)',
-        'rgba(175, 180, 190, 0.14)',
-        'rgba(185, 190, 200, 0.16)',
-        'rgba(195, 200, 205, 0.13)'
-      ];
-      const colorIndex = Math.floor(owl.x / 100) % grayColors.length;
-      
-      // Three different circle sizes - each level is half the size of the previous
-      const circleSizes = [0.01, 0.03, 0.06]; // Small (1x), Medium (2x), Large (4x) - each doubles
-      const sizeIndex = owl.index % circleSizes.length;
-      const circleRadius = baseSize * circleSizes[sizeIndex];
-      const rotation = frameCounter * 0.05; // Rotation speed
-      
-      ctx.globalAlpha = 0.8;
-      ctx.fillStyle = grayColors[colorIndex];
-      ctx.save();
-      ctx.rotate(rotation);
-      ctx.beginPath();
-      ctx.ellipse(0, 0, circleRadius, circleRadius, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
-      
-      // Draw sprite with correct aspect ratio
-      ctx.globalAlpha = 1.0;
-      try {
-        ctx.drawImage(owlSprite, sx, 0, actualFrameWidth, actualFrameHeight, -drawWidth/2, -drawHeight/2, drawWidth, drawHeight);
-        console.log("🎨 Drawing sprite frame:", frame, "at", owl.x, owl.y, "size:", drawWidth, "x", drawHeight);
-      } catch (e) {
-        console.error("❌ Error drawing sprite:", e);
-        drawFallbackOwl(ctx, owl);
-      }
-      ctx.globalAlpha = 1.0;
-    } else {
-      // Fallback drawing
-      drawFallbackOwl(ctx, owl);
-    }
-    
-    // Remove emoji icon completely
-    
-    ctx.restore();
-  }
-  
-  function drawFallbackOwl(ctx, owl) {
-    ctx.globalAlpha = 0.8;
-    
-    // Body
-    ctx.fillStyle = '#8B4513';
-    ctx.beginPath();
-    ctx.ellipse(0, 0, owl.size/2, owl.size/2.5, 0, 0, Math.PI * 2);
-    ctx.fill();
-    
-    // Eyes
-    ctx.fillStyle = 'white';
-    ctx.beginPath();
-    ctx.ellipse(-12, -12, 8, 8, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.ellipse(12, -12, 8, 8, 0, 0, Math.PI * 2);
-    ctx.fill();
-    
-    ctx.fillStyle = 'black';
-    ctx.beginPath();
-    ctx.ellipse(-12, -12, 4, 4, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.ellipse(12, -12, 4, 4, 0, 0, Math.PI * 2);
-    ctx.fill();
-    
-    // Beak
-    ctx.fillStyle = '#FFA500';
-    ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.lineTo(-5, 10);
-    ctx.lineTo(5, 10);
-    ctx.closePath();
-    ctx.fill();
-    
-    ctx.globalAlpha = 1.0;
-  }
-  
-  // Track mouse position
-  document.addEventListener('mousemove', function(e) {
-    window.lastMouseX = e.clientX;
-    window.lastMouseY = e.clientY;
-  });
-  
-  // Handle window resize
-  window.addEventListener('resize', function() {
-    if (canvas && containerElement) {
-      const newWidth = containerElement.offsetWidth;
-      const newHeight = containerElement.offsetHeight;
-      canvas.width = newWidth;
-      canvas.height = newHeight;
-      
-      // Recalculate bottom-relative position
-      lineY = newHeight - 150;
-      
-      // Update owl normal positions
-      owls.forEach(owl => {
-        owl.normalY = lineY;
-      });
-      
-      console.log("🔄 Resized - new owl position:", lineY, "px from top");
-    }
-  });
-  
-  // Start when DOM is ready
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initializeOwls);
-  } else {
-    setTimeout(initializeOwls, 100); // Small delay to ensure everything is ready
-  }
-  
-  console.log("🦉 Owl flock script loaded");
-})();
-</script> 
+        window.thoughtFlowActive = true;
+
+        console.log("✨ Starting Thought Flow Squares...");
+
+        class ThoughtSquare {
+            constructor(x, y, size, color, speed = 1, generation = 0) {
+                this.x = x;
+                this.y = y;
+                this.size = size;
+                this.originalSize = size;
+                this.color = color;
+                this.speed = speed;
+                this.generation = generation;
+                this.vx = -speed * (0.7 + Math.random() * 0.3);
+                this.vy = speed * (0.7 + Math.random() * 0.3);
+                this.life = 1.0;
+                this.maxLife = generation === 0 ? Infinity : 5000 + Math.random() * 3000;
+                this.birthTime = Date.now();
+                this.element = this.createElement();
+                this.rippleInfluence = { x: 0, y: 0, strength: 0 };
+            }
+
+            createElement() {
+                const el = document.createElement('div');
+                el.className = 'square';
+                el.style.width = this.size + 'px';
+                el.style.height = this.size + 'px';
+                el.style.background = this.color;
+                el.style.left = this.x + 'px';
+                el.style.top = this.y + 'px';
+                el.style.zIndex = Math.floor(100 - this.generation * 10);
+                container.appendChild(el);
+                return el;
+            }
+
+            update(mouseX, mouseY) {
+                // Age and lifecycle
+                const age = Date.now() - this.birthTime;
+                if (this.maxLife !== Infinity) {
+                    this.life = Math.max(0, 1 - age / this.maxLife);
+                    if (this.life <= 0) return false;
+                }
+
+                // Base movement
+                this.x += this.vx;
+                this.y += this.vy;
+
+                // Magnetic attraction to cursor
+                const dx = mouseX - this.x;
+                const dy = mouseY - this.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+
+                if (dist < 150 && dist > 0) {
+                    const magnetStrength = (150 - dist) / 150 * 0.15;
+                    const pullX = (dx / dist) * magnetStrength;
+                    const pullY = (dy / dist) * magnetStrength;
+
+                    this.vx += pullX * 0.05;
+                    this.vy += pullY * 0.05;
+
+                    if (dist < 60) {
+                        const repelStrength = (60 - dist) / 60 * 0.1;
+                        this.vx -= pullX * repelStrength;
+                        this.vy -= pullY * repelStrength;
+                    }
+                }
+
+                // Friction
+                this.vx *= 0.95;
+                this.vy *= 0.95;
+
+                // Force diagonal movement
+                this.x -= 0.8;
+                this.y += 0.8;
+
+                // Gentle oscillation
+                this.y += Math.sin(Date.now() * 0.001 + this.x * 0.01) * 0.2;
+
+                // Update visual properties
+                const currentSize = this.originalSize * (0.7 + 0.3 * this.life);
+                const opacity = this.generation === 0 ? 0.9 : this.life * 0.7;
+                const magnetInfluence = dist < 150 ? (150 - dist) / 150 : 0;
+
+                this.element.style.left = this.x + 'px';
+                this.element.style.top = this.y + 'px';
+                this.element.style.width = currentSize + 'px';
+                this.element.style.height = currentSize + 'px';
+                this.element.style.opacity = opacity;
+                this.element.style.transform = `rotate(${this.x * 0.5}deg) scale(${1 + magnetInfluence * 0.4})`;
+
+                // Remove if off screen
+                if (this.x < -100 || this.y > window.innerHeight + 100) return false;
+
+                return true;
+            }
+
+            shouldBranch(mouseX, mouseY) {
+                if (this.generation >= 2) return false;
+
+                const dx = this.x - mouseX;
+                const dy = this.y - mouseY;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+
+                return dist < 80 && Math.random() < 0.02 && this.size > 15;
+            }
+
+            branch() {
+                const branches = [];
+                const numBranches = 1 + Math.floor(Math.random() * 2);
+
+                for (let i = 0; i < numBranches; i++) {
+                    const angle = (Math.PI * 2 * i / numBranches) + (Math.random() - 0.5) * 0.5;
+                    const speed = this.speed * (0.9 + Math.random() * 0.2);
+                    const newSize = this.size * 0.4;
+                    const colors = [
+                        'linear-gradient(45deg, #ff6b6b, #ee5a24)',
+                        'linear-gradient(45deg, #4834d4, #686de0)',
+                        'linear-gradient(45deg, #00d2d3, #54a0ff)',
+                        'linear-gradient(45deg, #5f27cd, #00d2d3)',
+                        'linear-gradient(45deg, #ff9ff3, #f368e0)'
+                    ];
+
+                    const branch = new ThoughtSquare(
+                        this.x + Math.cos(angle) * 15,
+                        this.y + Math.sin(angle) * 15,
+                        newSize,
+                        colors[Math.floor(Math.random() * colors.length)],
+                        speed,
+                        this.generation + 1
+                    );
+
+                    branch.vx = this.vx + Math.cos(angle) * 0.3;
+                    branch.vy = this.vy + Math.sin(angle) * 0.3;
+
+                    branches.push(branch);
+                }
+
+                return branches;
+            }
+
+            destroy() {
+                if (this.element && this.element.parentNode) {
+                    this.element.parentNode.removeChild(this.element);
+                }
+            }
+        }
+
+        class Ripple {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.radius = 0;
+                this.maxRadius = 200;
+                this.strength = 1;
+                this.life = 1;
+                this.element = this.createElement();
+            }
+
+            createElement() {
+                const el = document.createElement('div');
+                el.className = 'ripple';
+                el.style.left = (this.x - 200) + 'px';
+                el.style.top = (this.y - 200) + 'px';
+                container.appendChild(el);
+                return el;
+            }
+
+            update() {
+                this.radius += 3;
+                this.life = Math.max(0, 1 - this.radius / this.maxRadius);
+                this.strength = this.life;
+
+                if (this.life <= 0) {
+                    this.destroy();
+                    return false;
+                }
+                return true;
+            }
+
+            destroy() {
+                if (this.element && this.element.parentNode) {
+                    this.element.parentNode.removeChild(this.element);
+                }
+            }
+        }
+
+        let container;
+        let cursor;
+        const squares = [];
+        const ripples = [];
+        let mouseX = 0, mouseY = 0;
+        let animationId;
+
+        function initializeAnimation() {
+            container = document.getElementById('thought-flow-container');
+            cursor = document.getElementById('custom-cursor');
+
+            if (!container) {
+                console.error("❌ Container not found, retrying...");
+                setTimeout(initializeAnimation, 100);
+                return;
+            }
+
+            console.log("✨ Container found, starting animation");
+
+            // Mouse tracking
+            document.addEventListener('mousemove', (e) => {
+                mouseX = e.clientX;
+                mouseY = e.clientY;
+                if (cursor) {
+                    cursor.style.left = (mouseX - 10) + 'px';
+                    cursor.style.top = (mouseY - 10) + 'px';
+                    cursor.classList.remove('hidden');
+                }
+            });
+
+            // Click for ripples
+            document.addEventListener('click', (e) => {
+                for (let i = 0; i < 3; i++) {
+                    setTimeout(() => {
+                        ripples.push(new Ripple(e.clientX + (Math.random() - 0.5) * 50, e.clientY + (Math.random() - 0.5) * 50));
+                    }, i * 100);
+                }
+            });
+
+            // Start animation
+            animate();
+
+            // Initial squares
+            for (let i = 0; i < 3; i++) {
+                setTimeout(() => spawnSquare(), i * 800);
+            }
+        }
+
+        function spawnSquare() {
+            const colors = [
+                'linear-gradient(45deg, #667eea, #764ba2)',
+                'linear-gradient(45deg, #f093fb, #f5576c)',
+                'linear-gradient(45deg, #4facfe, #00f2fe)',
+                'linear-gradient(45deg, #43e97b, #38f9d7)',
+                'linear-gradient(45deg, #fa709a, #fee140)'
+            ];
+
+            const size = 25 + Math.random() * 25;
+            const x = Math.random() * (window.innerWidth - size);
+            const speed = 0.3 + Math.random() * 0.4;
+
+            squares.push(new ThoughtSquare(
+                x,
+                -50,
+                size,
+                colors[Math.floor(Math.random() * colors.length)],
+                speed,
+                0
+            ));
+        }
+
+        function animate() {
+            if (!container) return;
+
+            // Update squares
+            for (let i = squares.length - 1; i >= 0; i--) {
+                const square = squares[i];
+
+                // Check for branching
+                if (square.shouldBranch(mouseX, mouseY)) {
+                    const branches = square.branch();
+                    squares.push(...branches);
+                }
+
+                // Update square
+                if (!square.update(mouseX, mouseY)) {
+                    square.destroy();
+                    squares.splice(i, 1);
+                }
+            }
+
+            // Spawn new squares
+            if (Math.random() < 0.015) {
+                spawnSquare();
+            }
+
+            animationId = requestAnimationFrame(animate);
+        }
+
+        // Start when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeAnimation);
+        } else {
+            setTimeout(initializeAnimation, 100);
+        }
+
+        console.log("✨ Thought Flow Squares script loaded");
+    })();
+</script>
