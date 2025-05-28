@@ -80,15 +80,18 @@
                 this.size = size;
                 this.originalSize = size;
                 this.color = color;
+                this.originalColor = color; // Store original color
                 this.speed = speed;
                 this.generation = generation;
-                this.vx = -speed * (0.7 + Math.random() * 0.3);
-                this.vy = speed * (0.7 + Math.random() * 0.3);
+                this.vx = -speed * (0.8 + Math.random() * 0.4); // Move left (negative)
+                this.vy = (Math.random() - 0.5) * 0.3; // Slight vertical wobble
                 this.life = 1.0;
                 this.maxLife = generation === 0 ? Infinity : 5000 + Math.random() * 3000;
                 this.birthTime = Date.now();
                 this.element = this.createElement();
                 this.rippleInfluence = { x: 0, y: 0, strength: 0 };
+                this.avoidanceForce = { x: 0, y: 0 };
+                this.targetY = y; // Target Y position for formation
             }
 
             createElement() {
@@ -99,7 +102,7 @@
                 el.style.background = this.color;
                 el.style.left = this.x + 'px';
                 el.style.top = this.y + 'px';
-                el.style.zIndex = Math.floor(100 - this.generation * 10);
+                el.style.zIndex = Math.floor(200 + this.generation * 10 + Math.random() * 50); // Higher z-index, new squares on top
                 container.appendChild(el);
                 return el;
             }
@@ -112,77 +115,119 @@
                     if (this.life <= 0) return false;
                 }
 
-                // Base movement
+                // Base movement (right to left like ducklings)
                 this.x += this.vx;
                 this.y += this.vy;
 
-                // Magnetic attraction to cursor
-                const dx = mouseX - this.x;
-                const dy = mouseY - this.y;
-                const dist = Math.sqrt(dx * dx + dy * dy);
+                // Steady left movement
+                this.x -= 1.2; // Main left movement
 
-                if (dist < 150 && dist > 0) {
-                    const magnetStrength = (150 - dist) / 150 * 0.15;
-                    const pullX = (dx / dist) * magnetStrength;
-                    const pullY = (dy / dist) * magnetStrength;
+                // Formation keeping - return to target Y position
+                const yDiff = this.targetY - this.y;
+                this.vy += yDiff * 0.02; // Gentle return to formation
 
-                    this.vx += pullX * 0.05;
-                    this.vy += pullY * 0.05;
-
-                    if (dist < 60) {
-                        const repelStrength = (60 - dist) / 60 * 0.1;
-                        this.vx -= pullX * repelStrength;
-                        this.vy -= pullY * repelStrength;
-                    }
-                }
-
-                // Friction
-                this.vx *= 0.95;
+                // Apply friction to prevent wild movements
                 this.vy *= 0.95;
 
-                // Force diagonal movement
-                this.x -= 0.8;
-                this.y += 0.8;
+                // Mouse avoidance behavior
+                const dx = this.x - mouseX;
+                const dy = this.y - mouseY;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                
+                // Only respond to mouse if square is within reasonable bounds
+                const padding = 100;
+                const isWithinBounds = this.x > -padding && 
+                                       this.x < window.innerWidth + padding && 
+                                       this.y > -padding && 
+                                       this.y < window.innerHeight + padding;
+                
+                let avoidanceStrength = 0;
+                if (dist < 200 && dist > 0 && isWithinBounds) {
+                    // Avoidance force - push away from mouse
+                    avoidanceStrength = (200 - dist) / 200;
+                    const avoidX = (dx / dist) * avoidanceStrength * 3; // Push away from mouse
+                    const avoidY = (dy / dist) * avoidanceStrength * 2;
+                    
+                    this.vx += avoidX * 0.1;
+                    this.vy += avoidY * 0.15;
+                    
+                    // Change color when avoiding - cycle through different colors
+                    const avoidColors = [
+                        'linear-gradient(45deg, #ff6b6b, #ee5a24)', // Red
+                        'linear-gradient(45deg, #feca57, #ff6b6b)', // Orange  
+                        'linear-gradient(45deg, #48dbfb, #0abde3)', // Blue
+                        'linear-gradient(45deg, #1dd1a1, #10ac84)', // Green
+                        'linear-gradient(45deg, #a55eea, #8742d8)'  // Purple
+                    ];
+                    const colorIndex = Math.floor((Date.now() * 0.005) % avoidColors.length);
+                    this.color = avoidColors[colorIndex];
+                } else {
+                    // Return to original color when not avoiding
+                    this.color = this.originalColor;
+                }
 
-                // Gentle oscillation
-                this.y += Math.sin(Date.now() * 0.001 + this.x * 0.01) * 0.2;
+                // Gentle bobbing motion like ducklings
+                this.y += Math.sin(Date.now() * 0.002 + this.x * 0.01) * 0.3;
 
                 // Update visual properties
-                const currentSize = this.originalSize * (0.7 + 0.3 * this.life);
+                const currentSize = this.originalSize * (0.8 + 0.2 * this.life);
                 const opacity = this.generation === 0 ? 0.9 : this.life * 0.7;
-                const magnetInfluence = dist < 150 ? (150 - dist) / 150 : 0;
-
+                
+                // Rotation based on avoidance (more rotation when avoiding)
+                const rotationSpeed = 0.05 + avoidanceStrength * 0.3;
+                const rotation = Date.now() * rotationSpeed * 0.001;
+                
                 this.element.style.left = this.x + 'px';
                 this.element.style.top = this.y + 'px';
                 this.element.style.width = currentSize + 'px';
                 this.element.style.height = currentSize + 'px';
                 this.element.style.opacity = opacity;
-                this.element.style.transform = `rotate(${this.x * 0.5}deg) scale(${1 + magnetInfluence * 0.4})`;
+                this.element.style.background = this.color;
+                this.element.style.transform = `rotate(${rotation}deg) scale(${1 + avoidanceStrength * 0.2})`;
 
-                // Remove if off screen
-                if (this.x < -100 || this.y > window.innerHeight + 100) return false;
-
+                // Remove if off screen - all boundaries with padding
+                const footerHeight = 200;
+                if (this.x < -padding || 
+                    this.x > window.innerWidth + padding || 
+                    this.y > window.innerHeight - footerHeight ||
+                    this.y < -padding) {
+                    return false; // Remove square when it goes out of bounds
+                }
+                
                 return true;
             }
 
-            shouldBranch(mouseX, mouseY) {
+            shouldBranch(mouseX, mouseY, isClicked = false) {
                 if (this.generation >= 2) return false;
-
+                
+                // Only branch when clicked, not on proximity
+                if (!isClicked) return false;
+                
+                // Don't branch if near boundaries to prevent edge multiplication
+                const padding = 150;
+                const isNearBoundary = this.x < padding || 
+                                       this.x > window.innerWidth - padding || 
+                                       this.y < padding || 
+                                       this.y > window.innerHeight - padding;
+                
+                if (isNearBoundary) return false;
+                
+                // Check if click is near this square
                 const dx = this.x - mouseX;
                 const dy = this.y - mouseY;
                 const dist = Math.sqrt(dx * dx + dy * dy);
-
-                return dist < 80 && Math.random() < 0.02 && this.size > 15;
+                
+                return dist < 50; // Only branch if click is close to this square
             }
 
             branch() {
                 const branches = [];
-                const numBranches = 1 + Math.floor(Math.random() * 2);
-
+                const numBranches = 2 + Math.floor(Math.random() * 2);
+                
                 for (let i = 0; i < numBranches; i++) {
                     const angle = (Math.PI * 2 * i / numBranches) + (Math.random() - 0.5) * 0.5;
-                    const speed = this.speed * (0.9 + Math.random() * 0.2);
-                    const newSize = this.size * 0.4;
+                    const speed = this.speed * (0.8 + Math.random() * 0.4);
+                    const newSize = this.size * 0.6;
                     const colors = [
                         'linear-gradient(45deg, #ff6b6b, #ee5a24)',
                         'linear-gradient(45deg, #4834d4, #686de0)',
@@ -190,22 +235,22 @@
                         'linear-gradient(45deg, #5f27cd, #00d2d3)',
                         'linear-gradient(45deg, #ff9ff3, #f368e0)'
                     ];
-
+                    
                     const branch = new ThoughtSquare(
-                        this.x + Math.cos(angle) * 15,
-                        this.y + Math.sin(angle) * 15,
+                        this.x + Math.cos(angle) * 20,
+                        this.y + Math.sin(angle) * 20,
                         newSize,
                         colors[Math.floor(Math.random() * colors.length)],
                         speed,
                         this.generation + 1
                     );
-
-                    branch.vx = this.vx + Math.cos(angle) * 0.3;
-                    branch.vy = this.vy + Math.sin(angle) * 0.3;
-
+                    
+                    branch.vx = this.vx + Math.cos(angle) * 0.5;
+                    branch.vy = this.vy + Math.sin(angle) * 0.5;
+                    
                     branches.push(branch);
                 }
-
+                
                 return branches;
             }
 
@@ -261,23 +306,30 @@
         const ripples = [];
         let mouseX = 0, mouseY = 0;
         let animationId;
+        let lastMouseMove = 0;
+        let isHovering = false;
+        let lastClickX = 0, lastClickY = 0;
+        let isClickFrame = false;
 
         function initializeAnimation() {
             container = document.getElementById('thought-flow-container');
             cursor = document.getElementById('custom-cursor');
-
+            
             if (!container) {
                 console.error("❌ Container not found, retrying...");
                 setTimeout(initializeAnimation, 100);
                 return;
             }
-
+            
             console.log("✨ Container found, starting animation");
-
+            
             // Mouse tracking
             document.addEventListener('mousemove', (e) => {
                 mouseX = e.clientX;
                 mouseY = e.clientY;
+                lastMouseMove = Date.now();
+                isHovering = true;
+                
                 if (cursor) {
                     cursor.style.left = (mouseX - 10) + 'px';
                     cursor.style.top = (mouseY - 10) + 'px';
@@ -285,8 +337,20 @@
                 }
             });
 
-            // Click for ripples
+            // Detect when mouse stops moving (not hovering)
+            setInterval(() => {
+                if (Date.now() - lastMouseMove > 2000) { // 2 seconds of no movement
+                    isHovering = false;
+                }
+            }, 500);
+
+            // Click for ripples and square explosion
             document.addEventListener('click', (e) => {
+                lastClickX = e.clientX;
+                lastClickY = e.clientY;
+                isClickFrame = true;
+                
+                // Create ripples
                 for (let i = 0; i < 3; i++) {
                     setTimeout(() => {
                         ripples.push(new Ripple(e.clientX + (Math.random() - 0.5) * 50, e.clientY + (Math.random() - 0.5) * 50));
@@ -296,10 +360,10 @@
 
             // Start animation
             animate();
-
+            
             // Initial squares
-            for (let i = 0; i < 3; i++) {
-                setTimeout(() => spawnSquare(), i * 800);
+            for (let i = 0; i < 2; i++) {
+                setTimeout(() => spawnSquare(), i * 1200);
             }
         }
 
@@ -312,13 +376,41 @@
                 'linear-gradient(45deg, #fa709a, #fee140)'
             ];
 
-            const size = 25 + Math.random() * 25;
-            const x = Math.random() * (window.innerWidth - size);
-            const speed = 0.3 + Math.random() * 0.4;
-
+            const size = 20 + Math.random() * 20; // Slightly smaller for duckling feel
+            const x = window.innerWidth + 50; // Start from right side
+            const y = window.innerHeight * 0.3 + (Math.random() - 0.5) * 200; // Middle area with some variation
+            const speed = 0.8 + Math.random() * 0.4; // Moderate speed
+            
             squares.push(new ThoughtSquare(
                 x,
-                -50,
+                y,
+                size,
+                colors[Math.floor(Math.random() * colors.length)],
+                speed,
+                0
+            ));
+        }
+
+        function spawnSquareNearMouse() {
+            const colors = [
+                'linear-gradient(45deg, #667eea, #764ba2)',
+                'linear-gradient(45deg, #f093fb, #f5576c)',
+                'linear-gradient(45deg, #4facfe, #00f2fe)',
+                'linear-gradient(45deg, #43e97b, #38f9d7)',
+                'linear-gradient(45deg, #fa709a, #fee140)'
+            ];
+
+            const size = 18 + Math.random() * 22;
+            
+            // Spawn from right side, but at a similar Y level to mouse
+            const x = window.innerWidth + 50;
+            const y = mouseY + (Math.random() - 0.5) * 100; // Near mouse Y level
+            
+            const speed = 0.6 + Math.random() * 0.4;
+            
+            squares.push(new ThoughtSquare(
+                x,
+                y,
                 size,
                 colors[Math.floor(Math.random() * colors.length)],
                 speed,
@@ -328,17 +420,17 @@
 
         function animate() {
             if (!container) return;
-
+            
             // Update squares
             for (let i = squares.length - 1; i >= 0; i--) {
                 const square = squares[i];
-
-                // Check for branching
-                if (square.shouldBranch(mouseX, mouseY)) {
+                
+                // Check for branching on click
+                if (isClickFrame && square.shouldBranch(lastClickX, lastClickY, true)) {
                     const branches = square.branch();
                     squares.push(...branches);
                 }
-
+                
                 // Update square
                 if (!square.update(mouseX, mouseY)) {
                     square.destroy();
@@ -346,9 +438,27 @@
                 }
             }
 
-            // Spawn new squares
-            if (Math.random() < 0.015) {
-                spawnSquare();
+            // Reset click frame flag
+            isClickFrame = false;
+
+            // Spawn new squares - much more conservative rates
+            let spawnRate;
+            if (isHovering) {
+                spawnRate = 0.008; // Slightly increased for duckling parade
+            } else {
+                spawnRate = 0.003; // Regular duckling spawning
+            }
+            
+            if (Math.random() < spawnRate) {
+                // Limit total number of squares to prevent overcrowding
+                if (squares.length < 6) { // Reduced for duckling formation
+                    // When hovering, spawn some squares near the mouse cursor
+                    if (isHovering && Math.random() < 0.5) {
+                        spawnSquareNearMouse();
+                    } else {
+                        spawnSquare();
+                    }
+                }
             }
 
             animationId = requestAnimationFrame(animate);
