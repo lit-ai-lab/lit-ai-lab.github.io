@@ -41,7 +41,7 @@
   let canvas;
   let containerElement;
   const COUNT = 6;
-  const SIZE = 80;
+  const SIZE = 40; // Half of previous size (80 -> 40)
   let frameCounter = 0;
   let animationId;
   let lineY; // Global variable for owl formation line
@@ -138,24 +138,38 @@
     const ctx = canvas.getContext('2d');
     console.log("🎨 Canvas created and added");
     
-    // Position owls near the bottom of the hero section (close to footer)
-    lineY = height - 150; // 150px from the bottom of the container
-    console.log("🦉 Positioning owls at:", lineY, "pixels from top (", height - lineY, "px from bottom)");
+    // Position owls lower to appear under "explore our research"
+    lineY = height * 0.6; // 60% from the top of the container (lower positioning)
+    console.log("🦉 Positioning owls at:", lineY, "pixels from top (60% of", height, "px height)");
     
-    // Create owls
+    // Create owls with controlled spacing (min and max limits)
     owls = [];
+    const totalWidth = width;
+    const minSpacing = SIZE * 2; // Minimum spacing = 80px to prevent overlap
+    const maxSpacing = SIZE * 2.5; // Maximum spacing = 100px (reduced from 160px)
+    const calculatedSpacing = totalWidth / (COUNT + 1);
+    const spacing = Math.max(minSpacing, Math.min(maxSpacing, calculatedSpacing)); // Clamp between min and max
+    
+    console.log("📏 Spacing calculation:", {
+      screenWidth: totalWidth,
+      calculated: calculatedSpacing,
+      final: spacing,
+      min: minSpacing,
+      max: maxSpacing
+    });
+    
     for (let i = 0; i < COUNT; i++) {
       owls.push({
-        x: width + 50 + i * 120,
+        x: width + 100 + i * spacing, // Start well off-screen with proper spacing
         y: lineY, // All owls at same height for formation
         vx: -2,
         vy: 0,
-        size: SIZE + (Math.random() - 0.5) * 30,
+        size: SIZE + (Math.random() - 0.5) * 10, // Smaller size variation to prevent overlap
         frame: Math.random() * 8,
         isFlying: false,
         normalY: lineY, // Same normal height for all
         index: i, // Store index for consistent spacing
-        spacing: 120 // Spacing between owls
+        spacing: spacing // Store calculated spacing
       });
     }
     
@@ -197,37 +211,80 @@
         // Flee from mouse - gentler response
         const fleeX = (owl.x - mouseX) / mouseDistance;
         const fleeY = (owl.y - mouseY) / mouseDistance;
-        owl.vx = fleeX * 2.5 - 1; // Reduced from 4 to 2.5 for smoother movement
-        owl.vy = fleeY * 2; // Reduced from 3 to 2 for smoother movement
+        owl.vx = fleeX * 1.5 - 0.5; // Reduced speed from 2.5 to 1.5, offset from -1 to -0.5
+        owl.vy = fleeY * 1.2; // Reduced speed from 2 to 1.2
       } else {
-        // Normal marching in formation
-        owl.vx = -2;
-        owl.vy = (owl.normalY - owl.y) * 0.1; // Return to formation line, no sine wave bobbing
+        // Normal marching in formation with wiggling motion
+        owl.vx = -1; // Reduced speed from -2 to -1
+        owl.vy = (owl.normalY - owl.y) * 0.1; // Return to formation line
+        
+        // Add wiggling motion
+        const wiggleX = Math.sin(frameCounter * 0.02 + owl.index * 0.5) * 0.3;
+        const wiggleY = Math.cos(frameCounter * 0.03 + owl.index * 0.7) * 0.2;
+        owl.vx += wiggleX;
+        owl.vy += wiggleY;
       }
       
       // Update position
       owl.x += owl.vx;
       owl.y += owl.vy;
       
-      // Wrap around with better spacing management
-      if (owl.x < -150) {
-        // Find the rightmost owl position to maintain proper spacing
-        let rightmostX = -Infinity;
-        for (let j = 0; j < owls.length; j++) {
-          if (j !== i && owls[j].x > rightmostX) {
-            rightmostX = owls[j].x;
+      // Prevent overlapping during movement
+      for (let j = 0; j < owls.length; j++) {
+        if (j !== i) {
+          const dx = owl.x - owls[j].x;
+          const dy = owl.y - owls[j].y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+          const minDistance = SIZE * 1.5; // Minimum safe distance
+          
+          // If too close, push apart
+          if (distance < minDistance && distance > 0) {
+            const pushForce = (minDistance - distance) / minDistance * 0.5;
+            const pushX = (dx / distance) * pushForce;
+            const pushY = (dy / distance) * pushForce;
+            
+            owl.x += pushX;
+            owl.y += pushY;
           }
         }
-        
-        // Position this owl with proper spacing from the rightmost owl
-        const minSpacing = 150; // Increased minimum spacing to prevent overlap
-        owl.x = Math.max(width + 150, rightmostX + minSpacing);
-        owl.y = owl.normalY; // Return to formation line
       }
       
-      // Bounds - keep owls in bottom area
-      const minY = Math.max(height * 0.5, lineY - 200); // Don't go higher than middle of screen
-      const maxY = Math.min(height - 50, lineY + 100); // Stay at least 50px from bottom
+      // Wrap around with overlap prevention
+      if (owl.x < -150) {
+        // Find a safe position that doesn't overlap with any existing square
+        let newX = width + spacing; // Start position
+        let attempts = 0;
+        let positionFound = false;
+        
+        while (!positionFound && attempts < 10) {
+          positionFound = true;
+          
+          // Check distance to all other squares
+          for (let j = 0; j < owls.length; j++) {
+            if (j !== i) {
+              const distance = Math.abs(newX - owls[j].x);
+              
+              // If too close, move further right
+              if (distance < spacing) {
+                newX = owls[j].x + spacing;
+                positionFound = false;
+                break;
+              }
+            }
+          }
+          
+          attempts++;
+        }
+        
+        owl.x = newX;
+        owl.y = owl.normalY;
+        
+        console.log("🔄 Respawned square", owl.index, "at position", newX, "after", attempts, "attempts");
+      }
+      
+      // Bounds - keep owls in lower area 
+      const minY = height * 0.4; // Stay above 40% from top
+      const maxY = height * 0.8; // Don't go below 80% from top
       
       if (owl.y < minY) owl.y = minY;
       if (owl.y > maxY) owl.y = maxY;
@@ -242,124 +299,96 @@
   function drawOwl(ctx, owl) {
     ctx.save();
     ctx.translate(owl.x, owl.y);
-    ctx.scale(-1, 1); // Flip for left movement
     
-    if (owlSprite && owlSprite.complete) {
-      // Use sprite - fix frame dimensions and maintain aspect ratio
-      // Sprite is 2048x256 with 8 frames, so each frame is 256x256
-      
-      // Frame logic: use frames 0,1,3,4,7 when walking, animate all frames when flying
-      let frame;
-      if (owl.isFlying) {
-        frame = Math.floor(frameCounter * 1.2) % 8; // Faster iteration through all frames (0-7)
-      } else {
-        // Cycle through specific walking frames: 0,1,3,4,7
-        const walkingFrames = [0, 1, 3, 4, 7];
-        const walkingSpeed = 0.2; // Slower animation for walking
-        const frameIndex = Math.floor(frameCounter * walkingSpeed) % walkingFrames.length;
-        frame = walkingFrames[frameIndex];
-      }
-      
-      // Use actual sprite dimensions for accurate frame cutting
-      const actualFrameWidth = owlSprite.naturalWidth / 8;  // Should be 256 if 2048/8
-      const actualFrameHeight = owlSprite.naturalHeight;     // Should be 256
-      const sx = frame * actualFrameWidth;
-      
-      // Debug actual frame cutting (remove after verification)
-      if (frameCounter % 60 === 0) { // Log every 60 frames to avoid spam
-        console.log("🔍 Sprite size:", owlSprite.naturalWidth, "x", owlSprite.naturalHeight);
-        console.log("📏 Frame size:", actualFrameWidth, "x", actualFrameHeight);
-        console.log("✂️ Current frame:", frame, "sx:", sx);
-      }
-      
-      // Calculate proper size maintaining aspect ratio
-      const baseSize = (owl.size * (owl.isFlying ? 1.3 : 1.0)) * 1.33; // Reduced to 1/3 of previous size (4 -> 1.33)
-      const aspectRatio = actualFrameWidth / actualFrameHeight; // Should be 1.0 for square frames
-      const drawWidth = baseSize * aspectRatio;
-      const drawHeight = baseSize;
-      
-      // Add beautiful gray background circles with rotation - 3 different sizes
-      const grayColors = [
-        'rgba(200, 200, 210, 0.15)',
-        'rgba(180, 185, 195, 0.12)', 
-        'rgba(190, 195, 200, 0.18)',
-        'rgba(175, 180, 190, 0.14)',
-        'rgba(185, 190, 200, 0.16)',
-        'rgba(195, 200, 205, 0.13)'
-      ];
-      const colorIndex = Math.floor(owl.x / 100) % grayColors.length;
-      
-      // Three different circle sizes - each level is half the size of the previous
-      const circleSizes = [0.01, 0.03, 0.06]; // Small (1x), Medium (2x), Large (4x) - each doubles
-      const sizeIndex = owl.index % circleSizes.length;
-      const circleRadius = baseSize * circleSizes[sizeIndex];
-      const rotation = frameCounter * 0.05; // Rotation speed
-      
-      ctx.globalAlpha = 0.8;
-      ctx.fillStyle = grayColors[colorIndex];
-      ctx.save();
-      ctx.rotate(rotation);
-      ctx.beginPath();
-      ctx.ellipse(0, 0, circleRadius, circleRadius, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
-      
-      // Draw sprite with correct aspect ratio
-      ctx.globalAlpha = 1.0;
-      try {
-        ctx.drawImage(owlSprite, sx, 0, actualFrameWidth, actualFrameHeight, -drawWidth/2, -drawHeight/2, drawWidth, drawHeight);
-        console.log("🎨 Drawing sprite frame:", frame, "at", owl.x, owl.y, "size:", drawWidth, "x", drawHeight);
-      } catch (e) {
-        console.error("❌ Error drawing sprite:", e);
-        drawFallbackOwl(ctx, owl);
-      }
-      ctx.globalAlpha = 1.0;
+    // Purple gradient for normal state
+    const purpleGradient = ['#667eea', '#764ba2'];
+    
+    // Colorful gradients for avoiding state
+    const avoidingColors = [
+      ['#f093fb', '#f5576c'],
+      ['#4facfe', '#00f2fe'],
+      ['#43e97b', '#38f9d7'],
+      ['#fa709a', '#fee140'],
+      ['#ff6b6b', '#ee5a24'],
+      ['#4834d4', '#686de0'],
+      ['#00d2d3', '#54a0ff'],
+      ['#ff9ff3', '#f368e0'],
+      ['#74b9ff', '#0984e3'],
+      ['#fd79a8', '#fdcb6e'],
+      ['#6c5ce7', '#a29bfe'],
+      ['#00cec9', '#55efc4']
+    ];
+    
+    // Select color based on state
+    let colorPair;
+    if (owl.isFlying) {
+      // Cycle through different colors when avoiding
+      const colorIndex = Math.floor(frameCounter * 0.3 + owl.index) % avoidingColors.length;
+      colorPair = avoidingColors[colorIndex];
     } else {
-      // Fallback drawing
-      drawFallbackOwl(ctx, owl);
+      // Always purple when normal
+      colorPair = purpleGradient;
     }
     
-    // Remove emoji icon completely
+    // Create gradient
+    const size = owl.size * (owl.isFlying ? 1.2 : 1.0);
+    const gradient = ctx.createLinearGradient(-size/2, -size/2, size/2, size/2);
+    gradient.addColorStop(0, colorPair[0]);
+    gradient.addColorStop(1, colorPair[1]);
     
-    ctx.restore();
-  }
-  
-  function drawFallbackOwl(ctx, owl) {
-    ctx.globalAlpha = 0.8;
+    // Add rotation effects
+    let rotation = 0;
+    if (owl.isFlying) {
+      // Fast colorful rotation when fleeing
+      rotation = frameCounter * 0.2;
+    } else {
+      // Smooth but irregular jiggling using multiple sine waves
+      const wave1 = Math.sin(frameCounter * 0.08 + owl.index * 0.7) * 0.15;
+      const wave2 = Math.sin(frameCounter * 0.12 + owl.index * 1.1) * 0.08;
+      const wave3 = Math.sin(frameCounter * 0.05 + owl.index * 0.4) * 0.05;
+      rotation = wave1 + wave2 + wave3; // Combine waves for complex but smooth motion
+    }
+    ctx.rotate(rotation);
     
-    // Body
-    ctx.fillStyle = '#8B4513';
-    ctx.beginPath();
-    ctx.ellipse(0, 0, owl.size/2, owl.size/2.5, 0, 0, Math.PI * 2);
-    ctx.fill();
+    // Draw rounded square
+    const cornerRadius = size * 0.15; // 15% of size for rounded corners
+    const halfSize = size / 2;
     
-    // Eyes
-    ctx.fillStyle = 'white';
-    ctx.beginPath();
-    ctx.ellipse(-12, -12, 8, 8, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.ellipse(12, -12, 8, 8, 0, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.fillStyle = gradient;
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
+    ctx.shadowBlur = 10;
+    ctx.shadowOffsetX = 2;
+    ctx.shadowOffsetY = 4;
     
-    ctx.fillStyle = 'black';
+    // Draw rounded rectangle
     ctx.beginPath();
-    ctx.ellipse(-12, -12, 4, 4, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.ellipse(12, -12, 4, 4, 0, 0, Math.PI * 2);
-    ctx.fill();
-    
-    // Beak
-    ctx.fillStyle = '#FFA500';
-    ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.lineTo(-5, 10);
-    ctx.lineTo(5, 10);
+    ctx.moveTo(-halfSize + cornerRadius, -halfSize);
+    ctx.lineTo(halfSize - cornerRadius, -halfSize);
+    ctx.quadraticCurveTo(halfSize, -halfSize, halfSize, -halfSize + cornerRadius);
+    ctx.lineTo(halfSize, halfSize - cornerRadius);
+    ctx.quadraticCurveTo(halfSize, halfSize, halfSize - cornerRadius, halfSize);
+    ctx.lineTo(-halfSize + cornerRadius, halfSize);
+    ctx.quadraticCurveTo(-halfSize, halfSize, -halfSize, halfSize - cornerRadius);
+    ctx.lineTo(-halfSize, -halfSize + cornerRadius);
+    ctx.quadraticCurveTo(-halfSize, -halfSize, -halfSize + cornerRadius, -halfSize);
     ctx.closePath();
     ctx.fill();
     
-    ctx.globalAlpha = 1.0;
+    // Add white border
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    
+    // Reset shadow
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
+    
+    const state = owl.isFlying ? "avoiding (colorful)" : "normal (purple)";
+    console.log("🎨 Drawing", state, "square at", owl.x, owl.y, "size:", size, "color:", colorPair[0], "->", colorPair[1]);
+    
+    ctx.restore();
   }
   
   // Track mouse position
@@ -376,8 +405,8 @@
       canvas.width = newWidth;
       canvas.height = newHeight;
       
-      // Recalculate bottom-relative position
-      lineY = newHeight - 150;
+      // Recalculate top-relative position
+      lineY = newHeight * 0.6; // 60% from the top of the container (lower positioning)
       
       // Update owl normal positions
       owls.forEach(owl => {
