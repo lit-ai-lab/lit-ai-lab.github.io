@@ -305,10 +305,16 @@
     ctx.save();
     ctx.translate(owl.x, owl.y);
     
-    // Purple gradient for normal state
+    // Check if we're in dark mode
+    const isDarkMode = document.documentElement.classList.contains('dark');
+    
+    // Purple gradient for normal state (light mode)
     const purpleGradient = ['#667eea', '#764ba2'];
     
-    // Colorful gradients for avoiding state
+    // Grayscale gradient for normal state (dark mode)
+    const grayscaleGradient = ['#6b7280', '#4b5563']; // gray-500 to gray-600
+    
+    // Colorful gradients for avoiding state (same for both modes)
     const avoidingColors = [
       ['#f093fb', '#f5576c'],
       ['#4facfe', '#00f2fe'],
@@ -324,15 +330,15 @@
       ['#00cec9', '#55efc4']
     ];
     
-    // Select color based on state
+    // Select color based on state and mode
     let colorPair;
     if (owl.isFlying) {
-      // Cycle through different colors when avoiding
+      // Cycle through different colors when avoiding (same for both modes)
       const colorIndex = Math.floor(frameCounter * 0.3 + owl.index) % avoidingColors.length;
       colorPair = avoidingColors[colorIndex];
     } else {
-      // Always purple when normal
-      colorPair = purpleGradient;
+      // Use grayscale in dark mode, purple in light mode for normal state
+      colorPair = isDarkMode ? grayscaleGradient : purpleGradient;
     }
     
     // Create gradient

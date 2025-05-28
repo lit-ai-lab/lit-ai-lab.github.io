@@ -6,7 +6,7 @@ end_date: "2025-08-01"
 image: "/images/projects/.jpg"
 categories: ["Digital Forensics", "LegalTech", "AI"]
 tags: ["LLM", "digital-forensics", "evidence-analysis", "automation"]
-status: "In Progress"
+status: "Research Phase"
 tech_stack: ["Python", "Open-source LLMs", "Langchain", "GraphDB", "VectorDB"]
 description: "Developing an automated system for analyzing digital forensics evidence using Large Language Models to enhance efficiency and accuracy in investigations."
 ---
