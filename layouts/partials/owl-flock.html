@@ -410,15 +410,23 @@
       canvas.width = newWidth;
       canvas.height = newHeight;
       
-      // Recalculate top-relative position
-      lineY = newHeight * 0.6; // 60% from the top of the container (lower positioning)
+      // Keep squares at their fixed position relative to banner - DON'T recalculate lineY
+      // lineY stays the same so squares maintain their position relative to the banner
       
-      // Update owl normal positions
-      owls.forEach(owl => {
-        owl.normalY = lineY;
+      // Recalculate spacing for new width
+      const minSpacing = SIZE * 0.5; // Minimum spacing = 20px (0.5 square gap)
+      const maxSpacing = SIZE * 3; // Maximum spacing = 120px (3 squares max)
+      const calculatedSpacing = newWidth / (COUNT + 1);
+      spacing = Math.max(minSpacing, Math.min(maxSpacing, calculatedSpacing));
+      
+      // Update owl spacing but keep Y position fixed
+      owls.forEach((owl, index) => {
+        owl.spacing = spacing;
+        // Keep normalY unchanged so squares stay at original banner-relative position
+        // owl.normalY = lineY; // REMOVED - this was causing the repositioning
       });
       
-      console.log("🔄 Resized - new owl position:", lineY, "px from top");
+      console.log("🔄 Resized - kept squares at original position:", lineY, "px from top");
     }
   });
   
