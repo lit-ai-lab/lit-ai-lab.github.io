@@ -45,6 +45,7 @@
   let frameCounter = 0;
   let animationId;
   let lineY; // Global variable for owl formation line
+  let spacing; // Global variable for square spacing
   
   const owlSpriteUrl = "{{ $owlSprite.RelPermalink }}";
   console.log("🖼️ Sprite URL:", owlSpriteUrl);
@@ -142,13 +143,13 @@
     lineY = height * 0.6; // 60% from the top of the container (lower positioning)
     console.log("🦉 Positioning owls at:", lineY, "pixels from top (60% of", height, "px height)");
     
-    // Create owls with controlled spacing (min and max limits)
+    // Create owls with controlled spacing (0.5 square min, 3 squares max)
     owls = [];
     const totalWidth = width;
-    const minSpacing = SIZE * 2; // Minimum spacing = 80px to prevent overlap
-    const maxSpacing = SIZE * 2.5; // Maximum spacing = 100px (reduced from 160px)
+    const minSpacing = SIZE * 0.5; // Minimum spacing = 20px (0.5 square gap)
+    const maxSpacing = SIZE * 3; // Maximum spacing = 120px (3 squares max)
     const calculatedSpacing = totalWidth / (COUNT + 1);
-    const spacing = Math.max(minSpacing, Math.min(maxSpacing, calculatedSpacing)); // Clamp between min and max
+    spacing = Math.max(minSpacing, Math.min(maxSpacing, calculatedSpacing)); // Assign to global variable
     
     console.log("📏 Spacing calculation:", {
       screenWidth: totalWidth,
@@ -229,57 +230,11 @@
       owl.x += owl.vx;
       owl.y += owl.vy;
       
-      // Prevent overlapping during movement
-      for (let j = 0; j < owls.length; j++) {
-        if (j !== i) {
-          const dx = owl.x - owls[j].x;
-          const dy = owl.y - owls[j].y;
-          const distance = Math.sqrt(dx * dx + dy * dy);
-          const minDistance = SIZE * 1.5; // Minimum safe distance
-          
-          // If too close, push apart
-          if (distance < minDistance && distance > 0) {
-            const pushForce = (minDistance - distance) / minDistance * 0.5;
-            const pushX = (dx / distance) * pushForce;
-            const pushY = (dy / distance) * pushForce;
-            
-            owl.x += pushX;
-            owl.y += pushY;
-          }
-        }
-      }
-      
-      // Wrap around with overlap prevention
-      if (owl.x < -150) {
-        // Find a safe position that doesn't overlap with any existing square
-        let newX = width + spacing; // Start position
-        let attempts = 0;
-        let positionFound = false;
-        
-        while (!positionFound && attempts < 10) {
-          positionFound = true;
-          
-          // Check distance to all other squares
-          for (let j = 0; j < owls.length; j++) {
-            if (j !== i) {
-              const distance = Math.abs(newX - owls[j].x);
-              
-              // If too close, move further right
-              if (distance < spacing) {
-                newX = owls[j].x + spacing;
-                positionFound = false;
-                break;
-              }
-            }
-          }
-          
-          attempts++;
-        }
-        
-        owl.x = newX;
+      // Simple wrap around - no complex logic
+      if (owl.x < -100) {
+        owl.x = width + spacing * (owl.index + 1); // Stagger based on index
         owl.y = owl.normalY;
-        
-        console.log("🔄 Respawned square", owl.index, "at position", newX, "after", attempts, "attempts");
+        console.log("🔄 Simple respawn for square", owl.index, "at", owl.x);
       }
       
       // Bounds - keep owls in lower area 
