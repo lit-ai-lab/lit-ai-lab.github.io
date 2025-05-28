@@ -65,9 +65,10 @@ content = "You must replace the **baseURL** in **hugo.toml** file when deploying
 # seo meta data for OpenGraph / Twitter Card
 # seo module: https://github.com/gethugothemes/hugo-modules/tree/master/seo-tools/basic-seo
 [metadata]
-keywords = ["Boilerplate", "Hugo"]
-description = "LIT AI Lab"
-author = "sungmi.park"
+keywords = ["AI", "LIT Lab", "Digital Forensics", "Cybercrime", "LegalTech", "Machine Learning", "Automated Decision Making"]
+description = "LIT AI Lab focuses on research and development in Automated Decision Making, integrating Logic, Law, and Intelligent Technology. We specialize in Digital Forensics, Cybercrime Investigation, and LegalTech."
+author = "LIT AI Lab"
+twitter = "lit_ai_lab"
 image = "images/og-image.png"
 
 
