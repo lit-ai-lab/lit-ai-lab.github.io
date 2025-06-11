@@ -32,15 +32,17 @@
             {{ end }}
           </div>
           <div class="col-12">
-            {{ if .image_dark }}
-              <!-- Light mode banner -->
-              {{ partial "image" (dict "Src" .image "Alt" "Banner image" "Loading" "eager" "Class" "mx-auto lg:!max-w-[800px] block dark:hidden" "DisplayXL" "800x" ) }}
-              <!-- Dark mode banner -->
-              {{ partial "image" (dict "Src" .image_dark "Alt" "Banner image" "Loading" "eager" "Class" "mx-auto lg:!max-w-[800px] hidden dark:block" "DisplayXL" "800x" ) }}
-            {{ else }}
-              <!-- Fallback to single image if no dark mode image -->
-              {{ partial "image" (dict "Src" .image "Alt" "Banner image" "Loading" "eager" "Class" "mx-auto lg:!max-w-[800px]" "DisplayXL" "800x" ) }}
-            {{ end }}
+            <div id="thought-flow-container" class="relative w-full">
+              {{ if .image_dark }}
+                <!-- Light mode banner -->
+                {{ partial "image" (dict "Src" .image "Alt" "Banner image" "Loading" "eager" "Class" "mx-auto lg:!max-w-[800px] block dark:hidden" "DisplayXL" "800x" ) }}
+                <!-- Dark mode banner -->
+                {{ partial "image" (dict "Src" .image_dark "Alt" "Banner image" "Loading" "eager" "Class" "mx-auto lg:!max-w-[800px] hidden dark:block" "DisplayXL" "800x" ) }}
+              {{ else }}
+                <!-- Fallback to single image if no dark mode image -->
+                {{ partial "image" (dict "Src" .image "Alt" "Banner image" "Loading" "eager" "Class" "mx-auto lg:!max-w-[800px]" "DisplayXL" "800x" ) }}
+              {{ end }}
+            </div>
           </div>
         </div>
       </div>

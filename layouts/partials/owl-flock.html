@@ -23,7 +23,6 @@
 
 <!-- Hugo asset processing -->
 {{ $owlSprite := resources.Get "images/owl-sprite.png" }}
-
 <script>
 (function() {
   'use strict';
@@ -40,6 +39,7 @@
   let owlSprite;
   let canvas;
   let containerElement;
+  let bannerContainer;
   const COUNT = 6;
   const SIZE = 40; // Half of previous size (80 -> 40)
   let frameCounter = 0;
@@ -50,17 +50,25 @@
   
   const owlSpriteUrl = "{{ $owlSprite.RelPermalink }}";
   console.log("🖼️ Sprite URL:", owlSpriteUrl);
-
+  
   // Wait for DOM to be ready
   function initializeOwls() {
-    containerElement = document.getElementById('owl-flock-container');
-    if (!containerElement) {
-      console.error("❌ Container not found, retrying...");
+    // Find the banner container first
+    bannerContainer = document.getElementById('thought-flow-container');
+    if (!bannerContainer) {
+      console.error("❌ Banner container not found, retrying...");
       setTimeout(initializeOwls, 100);
       return;
     }
     
-    console.log("📦 Container found");
+    containerElement = document.getElementById('owl-flock-container');
+    if (!containerElement) {
+      console.error("❌ Animation container not found, retrying...");
+      setTimeout(initializeOwls, 100);
+      return;
+    }
+    
+    console.log("📦 Both containers found");
     
     // Load sprite first with better error handling
     if (owlSpriteUrl && owlSpriteUrl !== "") {
@@ -140,9 +148,19 @@
     const ctx = canvas.getContext('2d');
     console.log("🎨 Canvas created and added");
     
-    // Position owls lower to appear under "explore our research"
-    lineY = height * 0.6; // 60% from the top of the container (lower positioning)
-    console.log("🦉 Positioning owls at:", lineY, "pixels from top (60% of", height, "px height)");
+    // Get banner container once
+    const bannerContainer = document.getElementById('thought-flow-container');
+
+    // Compute lineY relative to banner (or fallback)
+    if (bannerContainer) {
+      const bRect = bannerContainer.getBoundingClientRect();
+      const cRect = containerElement.getBoundingClientRect();
+      lineY = (bRect.top - cRect.top) + bRect.height / 2;
+      console.log('🦉 Calculated lineY from banner container:', lineY);
+    } else {
+      lineY = height * 0.6; // fallback
+      console.log('🦉 Fallback lineY:', lineY);
+    }
     
     // Create owls with controlled spacing (0.5 square min, 3 squares max)
     owls = [];
@@ -175,7 +193,7 @@
       });
     }
     
-    console.log("🦉 Created", COUNT, "owls");
+    console.log("🦉 Created", COUNT, "owls at banner center Y:", lineY);
     
     // Start animation loop
     animate();
@@ -245,9 +263,9 @@
         console.log("🔄 Simple respawn for square", owl.index, "at", owl.x);
       }
       
-      // Bounds - keep owls in lower area 
-      const minY = height * 0.4; // Stay above 40% from top
-      const maxY = height * 0.8; // Don't go below 80% from top
+      // Bounds - keep owls near banner center
+      const minY = lineY - 100; // Allow 100px above banner center
+      const maxY = lineY + 100; // Allow 100px below banner center
       
       if (owl.y < minY) owl.y = minY;
       if (owl.y > maxY) owl.y = maxY;
@@ -396,9 +414,6 @@
     ctx.shadowOffsetX = 0;
     ctx.shadowOffsetY = 0;
     
-    const state = owl.isFlying ? "avoiding (colorful)" : "normal (purple)";
-    console.log("🎨 Drawing", state, "square at", owl.x, owl.y, "size:", size, "color:", colorPair[0], "->", colorPair[1]);
-    
     ctx.restore();
   }
   
@@ -410,29 +425,30 @@
   
   // Handle window resize
   window.addEventListener('resize', function() {
-    if (canvas && containerElement) {
+    if (canvas && containerElement && bannerContainer) {
       const newWidth = containerElement.offsetWidth;
       const newHeight = containerElement.offsetHeight;
       canvas.width = newWidth;
       canvas.height = newHeight;
       
-      // Keep squares at their fixed position relative to banner - DON'T recalculate lineY
-      // lineY stays the same so squares maintain their position relative to the banner
+      /* Re-calculate banner center and formation line */
+      const bRect = bannerContainer.getBoundingClientRect();
+      const cRect = containerElement.getBoundingClientRect();
+      lineY = (bRect.top - cRect.top) + bRect.height / 2;
       
-      // Recalculate spacing for new width
-      const minSpacing = SIZE * 0.5; // Minimum spacing = 20px (0.5 square gap)
-      const maxSpacing = SIZE * 3; // Maximum spacing = 120px (3 squares max)
+      /* Re-calculate spacing for new width */
+      const minSpacing = SIZE * 0.5;   // 0.5-square gap
+      const maxSpacing = SIZE * 3;     // 3-square gap
       const calculatedSpacing = newWidth / (COUNT + 1);
       spacing = Math.max(minSpacing, Math.min(maxSpacing, calculatedSpacing));
       
-      // Update owl spacing but keep Y position fixed
+      /* Update each square with new baseline and spacing (keep current x offset) */
       owls.forEach((owl, index) => {
-        owl.spacing = spacing;
-        // Keep normalY unchanged so squares stay at original banner-relative position
-        // owl.normalY = lineY; // REMOVED - this was causing the repositioning
+        owl.normalY = lineY;
+        owl.spacing  = spacing;
       });
       
-      console.log("🔄 Resized - kept squares at original position:", lineY, "px from top");
+      console.log('🔄 Resize → new banner center Y:', lineY, ' | spacing:', spacing);
     }
   });
   
@@ -444,7 +460,7 @@
   }
   
   console.log("🦉 Owl flock script loaded");
-
+  
   // Create explosion of small squares
   function createExplosion(x, y, size) {
     const particleCount = 8; // Number of small squares
