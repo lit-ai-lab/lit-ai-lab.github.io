@@ -1,30 +1,12 @@
 ---
 title: "Contact Us"
-meta_title: "Contact LIT AI Lab"
-description: "Get in touch with our AI research team"
+meta_title: "LIT AI Lab 연락처"
+description: "한림대학교교"
 draft: false
 ---
 
-## 📧 Email
+**📧 이메일:** sungmi.park@hallym.ac.kr  
 
-**Contact Us at** sungmi.park@hallym.ac.kr  
+**📍 주소:** 강원도 춘천시 한림대학길 1, 한림대학교 (24252)
 
-## 📍 Address
-
-**LIT AI Laboratory**  
-Hallym University  
-1 Hallymdaehak-gil, Chuncheon-si  
-Gangwon-do, South Korea 24252
-
-## 📞 Phone
-
-**Office:** +82-33-248-1234  
-**Lab:** +82-33-248-5678
-
-## 🔬 Research Areas
-
-- Automated Decision Making Systems
-- Digital Forensics
-- Cybercrime Investigation
-- Transparency Law (AI Act)
-- Legal Technology
+**🔬 연구 분야:** 자동화 의사결정 시스템 / 디지털 포렌식 / 사이버범죄 수사 / 인공지능 법 / 리걸테크

@@ -1,5 +1,5 @@
 ---
-title: "AI for Automated Audit Result Analysis"
+title: "인공지능을 활용한 자체감사결과 분석 방법 연구"
 date: 2025-05-01
 start_date: "2025-04-01"
 end_date: "2025-08-01"
@@ -8,22 +8,22 @@ categories: ["AI", "Audit", "Public Sector"]
 tags: ["AI-audit", "automated-analysis", "data-analysis", "public-service"]
 status: "In Progress"
 tech_stack: ["Python", "Data Analysis Tools", "Machine Learning"]
-description: "Research and development into methods for analyzing self-audit results using artificial intelligence, aiming to enhance the efficiency and depth of auditing processes."
+description: "감사원의 자체감사 결과 분석을 위한 인공지능 기반 방법론 연구개발 프로젝트로, 감사 프로세스의 효율성과 심도를 향상시키는 것을 목표로 함."
 ---
 
-## Project Overview
+## 프로젝트 개요
 
-This project focuses on leveraging artificial intelligence to automate and enhance the analysis of self-audit results for the Board of Audit and Inspection. The goal is to develop AI-driven methods that can efficiently process large volumes of audit data, identify anomalies, patterns, and potential issues, thereby improving the accuracy and effectiveness of audit operations.
+본 프로젝트는 인공지능을 활용하여 감사원의 자체감사 결과 분석을 자동화하고 향상시키는 데 초점을 맞춤. 목표는 대량의 감사 데이터를 효율적으로 처리하고, 이상 징후, 패턴 및 잠재적 문제를 식별하여 감사 업무의 정확성과 효과성을 개선하는 AI 기반 방법론 개발.
 
-### Key Features
+### 주요 특징
 
-* **Automated Data Processing:** Efficiently ingesting and structuring diverse audit data.
-* **Anomaly Detection:** Identifying discrepancies or unusual patterns that may indicate risks.
-* **Insight Generation:** Providing auditors with actionable insights derived from AI analysis.
-* **Efficiency Enhancement:** Reducing manual effort and accelerating the audit cycle.
+* **자동화된 데이터 처리:** 다양한 감사 데이터의 효율적 수집 및 구조화
+* **이상 탐지:** 위험을 나타낼 수 있는 불일치 또는 비정상적 패턴 식별
+* **인사이트 생성:** AI 분석에서 도출된 실행 가능한 통찰력 제공
+* **효율성 향상:** 수동 작업 감소 및 감사 주기 가속화
 
-### Goals
+### 목표
 
-* Improve the efficiency and quality of audit result analysis.
-* Provide advanced tools to support auditors in their critical work.
-* Contribute to more robust and data-driven public sector oversight.
+* 감사 결과 분석의 효율성 및 품질 개선
+* 감사관들의 핵심 업무를 지원하는 고급 도구 제공
+* 보다 강력하고 데이터 기반의 공공 부문 감독에 기여

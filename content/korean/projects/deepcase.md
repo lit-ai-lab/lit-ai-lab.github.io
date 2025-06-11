@@ -1,5 +1,5 @@
 ---
-title: "AI-Based Criminal Investigation Support System"
+title: "AI 기반 범죄수사 지원 통합시스템"
 date: 2024-12-01
 start_date: "2021-04-01"
 end_date: "2024-12-01"

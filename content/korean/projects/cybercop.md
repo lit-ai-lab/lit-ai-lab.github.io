@@ -1,5 +1,5 @@
 ---
-title: "Cybercrime Investigation Support: Reasoning and Verification System"
+title: "사이버범죄 수사단서 통합분석 및 추론시스템 개발 사업"
 date: 2028-12-01
 start_date: "2025-04-01"
 end_date: "2028-12-01"
