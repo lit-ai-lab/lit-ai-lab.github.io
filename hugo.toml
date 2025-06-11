@@ -16,7 +16,7 @@ hasCJKLanguage = false #  If hasCJKLanguage true, auto-detect Chinese/Japanese/K
 # default language
 defaultContentLanguage = 'en'
 # defaultContentLanguageInSubdir need to be true if you want to use the language code as a subdirectory and language specific 404 page
-defaultContentLanguageInSubdir = false
+defaultContentLanguageInSubdir = true
 # Show future content (projects with future dates)
 buildFuture = true
 
@@ -162,3 +162,19 @@ lazy = true
 [[params.plugins.js]]
 link = "plugins/youtube-lite.js"
 lazy = true
+
+[languages]
+
+[languages.en]
+languageName = 'English'
+weight = 1
+contentDir = 'content/english'
+title = 'LIT AI Lab'
+params.flag = '🇺🇸'
+
+[languages.ko]
+languageName = '한국어'
+weight = 2
+contentDir = 'content/korean'
+title = 'LIT AI Lab'
+params.flag = '🇰🇷'
