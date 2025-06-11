@@ -69,50 +69,51 @@
     }
     
     console.log("📦 Both containers found");
+    startAnimation();
     
-    // Load sprite first with better error handling
-    if (owlSpriteUrl && owlSpriteUrl !== "") {
-      console.log("📁 Loading sprite from:", owlSpriteUrl);
+    // // Load sprite first with better error handling
+    // if (owlSpriteUrl && owlSpriteUrl !== "") {
+    //   console.log("📁 Loading sprite from:", owlSpriteUrl);
       
-      const img = new Image();
-      img.crossOrigin = "anonymous"; // Add crossOrigin for better compatibility
-      img.onload = function() {
-        console.log("✅ Sprite loaded successfully!");
-        console.log("📐 Sprite dimensions:", img.naturalWidth, "x", img.naturalHeight);
-        console.log("🔍 Expected: 2048x256, Got:", img.naturalWidth, "x", img.naturalHeight);
+    //   const img = new Image();
+    //   img.crossOrigin = "anonymous"; // Add crossOrigin for better compatibility
+    //   img.onload = function() {
+    //     console.log("✅ Sprite loaded successfully!");
+    //     console.log("📐 Sprite dimensions:", img.naturalWidth, "x", img.naturalHeight);
+    //     console.log("🔍 Expected: 2048x256, Got:", img.naturalWidth, "x", img.naturalHeight);
         
-        // Verify frame calculations
-        const expectedFrameWidth = img.naturalWidth / 8;
-        const expectedFrameHeight = img.naturalHeight;
-        console.log("📏 Calculated frame size:", expectedFrameWidth, "x", expectedFrameHeight);
+    //     // Verify frame calculations
+    //     const expectedFrameWidth = img.naturalWidth / 8;
+    //     const expectedFrameHeight = img.naturalHeight;
+    //     console.log("📏 Calculated frame size:", expectedFrameWidth, "x", expectedFrameHeight);
         
-        owlSprite = img;
-        startAnimation();
-      };
-      img.onerror = function(e) {
-        console.error("❌ Sprite failed to load:", e);
-        console.log("🔄 Trying direct path...");
+    //     owlSprite = img;
+    //     startAnimation();
+    //   };
+    //   img.onerror = function(e) {
+    //     console.error("❌ Sprite failed to load:", e);
+    //     console.log("🔄 Trying direct path...");
         
-        // Try direct path as fallback
-        const directImg = new Image();
-        directImg.onload = function() {
-          console.log("✅ Direct sprite loaded successfully!");
-          owlSprite = directImg;
-          startAnimation();
-        };
-        directImg.onerror = function() {
-          console.log("❌ Direct sprite also failed, using fallback");
-          owlSprite = null;
-          startAnimation();
-        };
-        directImg.src = "/images/owl-sprite.png";
-      };
-      img.src = owlSpriteUrl;
-    } else {
-      console.log("⚠️ No sprite URL, using fallback");
-      owlSprite = null;
-      startAnimation();
-    }
+    //     // Try direct path as fallback
+    //     const directImg = new Image();
+    //     directImg.onload = function() {
+    //       console.log("✅ Direct sprite loaded successfully!");
+    //       owlSprite = directImg;
+    //       startAnimation();
+    //     };
+    //     directImg.onerror = function() {
+    //       console.log("❌ Direct sprite also failed, using fallback");
+    //       owlSprite = null;
+    //       startAnimation();
+    //     };
+    //     directImg.src = "/images/owl-sprite.png";
+    //   };
+    //   img.src = owlSpriteUrl;
+    // } else {
+    //   console.log("⚠️ No sprite URL, using fallback");
+    //   owlSprite = null;
+    //   startAnimation();
+    // }
   }
   
   function startAnimation() {
