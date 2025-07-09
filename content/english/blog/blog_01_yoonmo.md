@@ -4,9 +4,9 @@ meta_title: "AI가 만든 가짜 뉴스, 실제 사례와 구별법"
 description: "AI가 만든 가짜 뉴스의 실제 사례를 바탕으로, 가짜 뉴스의 특징과 구별법을 소개합니다."
 date: 2025-06-30T05:00:00Z
 image: ""
-categories: ["AI", "뉴스"]
+categories: ["AI", "NEWS"]
 author: "Yang Yoonmo"
-tags: ["AI", "가짜뉴스","ChatGPT","뉴스"]
+tags: ["AI", "FAKE NEWS","NEWS"]
 draft: false
 ---
 # AI가 만든 가짜뉴스, 어떻게 구별할 수 있을까?
