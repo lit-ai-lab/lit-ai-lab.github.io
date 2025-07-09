@@ -4,9 +4,9 @@ meta_title: "생성형 AI로 공부하는 대학생들: 프로그래밍 학습�
 description: "생성형 AI를 통해 프로그래밍을 학습하는 대학생들의 실제 사례와 그 활용법, 주의할 점까지 함께 살펴봅니다."
 date: 2025-07-01T05:00:00Z
 image: ""
-categories: ["AI", "교육", "프로그래밍"]
-author: "홍윤이"
-tags: ["AI", "프로그래밍 공부", "ChatGPT", "생성형 AI", "대학교육"]
+categories: ["AI", "education", "programming"]
+author: "Hong Yunyi"
+tags: ["AI", "programming study", "ChatGPT", "Generative AI", "university"]
 draft: false
 ---
 
