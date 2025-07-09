@@ -6,7 +6,7 @@ date: 2025-07-01T05:00:00Z
 image: ""
 categories: ["AI", "뉴스"]
 author: "Choi Daon"
-tags: ["AI", "뉴스", ”흥행“, ”예측“]
+tags: ["AI", "뉴스", "흥행", "예측"]
 draft: false
 ---
 
