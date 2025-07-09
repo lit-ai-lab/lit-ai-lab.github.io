@@ -4,9 +4,9 @@ meta_title: "AI 흥행 예측 성공, 실패 사례와 발전 방향"
 description: "AI 흥행 예측이 실제 사업에 얼마나 도움이 될 수 있는가 살펴보자."
 date: 2025-07-01T05:00:00Z
 image: ""
-categories: ["AI", "뉴스"]
+categories: ["AI", "News"]
 author: "Choi Daon"
-tags: ["AI", "뉴스", "흥행", "예측"]
+tags: ["AI", "News", "Commercial-Performance", "Prediction"]
 draft: false
 ---
 
